@@ -1,0 +1,112 @@
+- id: deb-sudo-denied
+  title: "sudo: unable to resolve hostname / user may not run sudo"
+  os: debian
+  category: permissions-auth
+  severity: common
+  keywords: [sudo, hostname, DNS, permissions]
+  symptoms:
+    - "sudo: unable to resolve hostname"
+    - "User X may not run sudo"
+    - "User is not in the sudoers file"
+  causes:
+    - "/etc/hosts missing 127.0.1.1 entry or incorrect hostname"
+    - "User not in sudoers or sudo group"
+    - "DNS misconfiguration"
+  diagnosis:
+    - "cat /etc/hosts"
+    - "hostname -f"
+    - "getent group sudo"
+    - "id <username>"
+  resolution:
+    - "Add correct hostname entry to /etc/hosts: 127.0.1.1 <hostname>"
+    - "Add user to sudo group: sudo usermod -aG sudo <username>"
+    - "Ensure /etc/hostname has the correct system name"
+  commands:
+    - "sudo sh -c 'echo \"127.0.1.1 $(hostname)\" >> /etc/hosts'"
+    - "sudo usermod -aG sudo <username>"
+    - "sudo nano /etc/hosts"
+  sources:
+    - {name: "Debian Wiki - sudoers", url: "https://wiki.debian.org/sudoers"}
+    - {name: "man 5 hosts", url: "https://man7.org/linux/man-pages/man5/hosts.5.html"}
+  related: [deb-sudo-passwd]
+
+- id: deb-sudo-passwd
+  title: "sudo password prompt fails / user password reset"
+  os: debian
+  category: permissions-auth
+  severity: common
+  keywords: [sudo, password, reset, passwd]
+  symptoms:
+    - "sudo asks for password but it doesn't work"
+    - "User forgot password"
+  causes:
+    - "User password is expired or locked"
+    - "Incorrect password"
+  diagnosis:
+    - "passwd -S <username>"
+    - "passwd -n <username>"
+  resolution:
+    - "Reset password: sudo passwd <username>"
+    - "Unlock account: sudo passwd -u <username>"
+  commands:
+    - "sudo passwd <username>"
+    - "sudo passwd -u <username>"
+  sources:
+    - {name: "man passwd", url: "https://man7.org/linux/man-pages/man1/passwd.1.html"}
+  related: [deb-sudo-denied]
+
+- id: deb-user-group-perms
+  title: "User not in required group / permission denied"
+  os: debian
+  category: permissions-auth
+  severity: common
+  keywords: [user, group, permissions, sudo]
+  symptoms:
+    - "User cannot write to directory"
+    - "User not in required group (e.g., docker, sudo, plugdev)"
+  causes:
+    - "User not added to required group"
+    - "File permissions incorrect"
+  diagnosis:
+    - "id <username>"
+    - "ls -la <path>"
+    - "getent group <group-name>"
+  resolution:
+    - "Add user to group: sudo usermod -aG <group> <username>"
+    - "Fix file permissions: sudo chown <username>:<group> <path>"
+    - "Log out and back in for group changes to take effect"
+  commands:
+    - "sudo usermod -aG <group> <username>"
+    - "sudo chown <username>:<group> <path>"
+    - "newgrp <group>"
+  sources:
+    - {name: "Debian Wiki - User Management", url: "https://wiki.debian.org/UserManagement"}
+    - {name: "man usermod", url: "https://man7.org/linux/man-pages/man8/usermod.8.html"}
+  related: []
+
+- id: deb-nopasswd-sudo
+  title: "Configure NOPASSWD sudo for service accounts"
+  os: debian
+  category: permissions-auth
+  severity: moderate
+  keywords: [sudo, nopasswd, service, cron, user]
+  symptoms:
+    - "Need sudo without password for a service account"
+    - "Cron job needs sudo without password prompt"
+  causes:
+    - "No NOPASSWD entry in sudoers"
+  diagnosis:
+    - "sudo -l -U <username>"
+    - "sudo visudo -l"
+  resolution:
+    - "Add to /etc/sudoers.d/<file>: <user> ALL=(ALL) NOPASSWD:ALL"
+    - "Or for specific command: <user> ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart <service>"
+    - "Use sudo visudo to edit"
+  commands:
+    - "sudo visudo"
+    - "sudo visudo -l"
+    - "sudo -l -U <username>"
+  sources:
+    - {name: "Debian Wiki - sudoers", url: "https://wiki.debian.org/sudoers"}
+    - {name: "man sudoers", url: "https://www.sudo.ws/docs/man/1.8/sudoers.man/"}
+  related: []

@@ -1,0 +1,95 @@
+- id: deb-disk-full
+  title: "Disk full / no space left on device"
+  os: debian
+  category: storage
+  severity: common
+  keywords: [disk, space, full, quota]
+  symptoms:
+    - "No space left on device when writing files"
+    - "df -h shows 100% usage"
+  causes:
+    - "Log files grew unbounded"
+    - "Temporary files not cleaned"
+    - "Old kernels not removed"
+  diagnosis:
+    - "df -h"
+    - "du -sh /var/log"
+    - "ls -lh /var/log/journal/"
+    - "find / -xdev -type f -size +500M"
+  resolution:
+    - "Clean log files: sudo journalctl --vacuum-time=2d"
+    - "Remove old kernels: sudo apt autoremove"
+    - "Extend filesystem if applicable"
+  commands:
+    - "df -h"
+    - "du -sh /var/log/*"
+    - "sudo journalctl --vacuum-time=2d"
+    - "sudo apt autoremove"
+    - "sudo reboot"
+  sources:
+    - {name: "Debian Wiki - Disk Usage Warning", url: "https://wiki.debian.org/Disk_Usage_Warning"}
+    - {name: "man df", url: "https://man7.org/linux/man-pages/man1/df.1.html"}
+  related: []
+
+- id: deb-fstab-mount
+  title: "fstab mount errors at boot"
+  os: debian
+  category: storage
+  severity: moderate
+  keywords: [fstab, mount, boot, error]
+  symptoms:
+    - "System won't boot / enters emergency mode"
+    - "Mount points from /etc/fstab fail"
+  causes:
+    - "Incorrect fstab entry"
+    - "UUID changed or disk reordered"
+    - "Filesystem not available at boot"
+  diagnosis:
+    - "systemctl status boot.mount"
+    - "journalctl -xb | grep fstab"
+    - "sudo mount -a"
+  resolution:
+    - "Check /etc/fstab with: sudo mount -a"
+    - "Use UUIDs consistently: blkid"
+    - "Comment out problematic entry and boot with recovery mode"
+  commands:
+    - "sudo blkid"
+    - "sudo mount -a"
+    - "sudo nano /etc/fstab"
+  sources:
+    - {name: "man fstab", url: "https://man7.org/linux/man-pages/man5/fstab.5.html"}
+    - {name: "man mount", url: "https://man7.org/linux/man-pages/man8/mount.8.html"}
+  related: []
+
+- id: deb-lvm
+  title: "LVM: Extend logical volume / fix volume group"
+  os: debian
+  category: storage
+  severity: moderate
+  keywords: [lvm, logical-volume, volume-group, extend, resize]
+  symptoms:
+    - "Logical volume is full, need to extend"
+    - "Volume group out of free extents"
+    - "PV/Volume group shows as missing"
+  causes:
+    - "No free space in volume group"
+    - "Physical volume not detected"
+  diagnosis:
+    - "vgs"
+    - "lvs"
+    - "pvs"
+    - "df -h /dev/mapper/<vg>-<lv>"
+  resolution:
+    - "Extend LV: sudo lvextend -L +10G /dev/<vg>/<lv> && sudo resize2fs /dev/<vg>/<lv>"
+    - "Add PV: sudo vgextend <vg> /dev/<new-pv>"
+  commands:
+    - "vgs"
+    - "lvs"
+    - "pvs"
+    - "sudo lvextend -L +10G /dev/<vg>/<lv>"
+    - "sudo resize2fs /dev/<vg>/<lv>"
+    - "sudo vgextend <vg> /dev/<new-pv>"
+  sources:
+    - {name: "Debian Wiki - LVM", url: "https://wiki.debian.org/LVM"}
+    - {name: "man lvextend", url: "https://man7.org/linux/man-pages/man8/lvextend.8.html"}
+  related: []

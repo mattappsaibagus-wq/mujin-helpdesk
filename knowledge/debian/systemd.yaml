@@ -1,0 +1,233 @@
+- id: deb-systemd-service-failed
+  title: Systemd service failed to start (docker, nginx, etc.)
+  os: debian
+  category: systemd
+  severity: common
+  keywords:
+  - systemd
+  - service
+  - failed
+  - start
+  - docker
+  - nginx
+  symptoms:
+  - systemctl status <service-name> shows failed
+  - 'service cannot start: Unit <name> could not be found or not be started'
+  causes:
+  - Unit file missing or corrupted
+  - Dependency not found
+  - Incorrect service configuration (ExecStart, WorkingDirectory)
+  - Insufficient permissions or user mismatch
+  diagnosis:
+  - systemctl status <service-name>
+  - systemctl logs <service-name>
+  - journalctl -u <service-name>
+  resolution:
+  - Fix unit file or reinstall package providing the service
+  - systemctl reset-failure <service-name>
+  - systemctl daemon-reload
+  commands:
+  - systemctl status <service-name>
+  - systemctl reset-failure <service-name>
+  - systemctl daemon-reload
+  - systemctl start <service-name>
+  sources:
+  - name: Debian Wiki - systemd
+    url: https://wiki.debian.org/systemd
+  - name: man systemctl
+    url: https://man7.org/linux/man-pages/man1/systemctl.1.html
+  related:
+  - deb-systemd-enable-mask
+- id: deb-systemd-enable-mask
+  title: Systemd service is masked or disabled
+  os: debian
+  category: systemd
+  severity: common
+  keywords:
+  - systemd
+  - service
+  - enable
+  - masked
+  - disable
+  symptoms:
+  - 'systemctl enable <name> fails: Unit file does not exist, has no [Install] section,
+    or is masked'
+  - service is not starting on boot
+  causes:
+  - Service file is masked (symlink to /dev/null)
+  - Service was disabled via systemctl disable
+  - Unit file does not have an [Install] section
+  diagnosis:
+  - systemctl status <service-name>
+  - systemctl is-enabled <service-name>
+  - systemctl is-masked <service-name>
+  resolution:
+  - 'To unmask: systemctl unmask <service-name>'
+  - 'To enable: systemctl enable <service-name>'
+  - 'To disable: systemctl disable <service-name>'
+  commands:
+  - systemctl is-enabled <service-name>
+  - systemctl is-masked <service-name>
+  - systemctl unmask <service-name>
+  - systemctl enable <service-name>
+  sources:
+  - name: Debian Wiki - systemd
+    url: https://wiki.debian.org/systemd
+  - name: man systemctl
+    url: https://man7.org/linux/man-pages/man1/systemctl.1.html
+  related:
+  - deb-systemd-service-failed
+- id: deb-systemd-boot-slow
+  title: System boot is slow
+  os: debian
+  category: systemd
+  severity: common
+  keywords:
+  - systemd
+  - boot
+  - slow
+  - performance
+  symptoms:
+  - Machine takes > 30s to reach login prompt
+  - journalctl --since 'boot time' shows lots of services starting
+  - lsof | grep waiting shows stuck processes
+  causes:
+  - Large /var/log journal growing disk usage
+  - Unnecessary services starting at boot (cron, apt, syslog)
+  - Non-boot-critical packages in initramfs
+  diagnosis:
+  - systemctl list-units --type=service --all | grep loaded
+  - journalctl --since 'boot time' shows many services
+  resolution:
+  - 'Limit journal retention: sudo journalctl --vacuum-time=30d && sudo journalctl
+    --rotate'
+  - 'Disable non-essential boot services: sudo systemctl disable --now <service-name>'
+  - 'Optimize initramfs: sudo update-initramfs -c -k all'
+  commands:
+  - systemctl list-units --type=service --all
+  - sudo journalctl --vacuum-time=30d
+  - sudo journalctl --rotate
+  - sudo update-initramfs -c -k all
+  sources:
+  - name: man update-initramfs
+    url: https://man7.org/linux/man-pages/man8/boot.8.en.html
+  - name: man journalctl
+    url: https://man7.org/linux/man-pages/man1/journalctl.1.html
+  related: []
+- id: deb-systemd-networkd-fail
+  title: Systemd-networkd - network configuration issues at boot
+  os: debian
+  category: systemd
+  severity: common
+  keywords:
+  - systemd-networkd
+  - network
+  - boot
+  - networkd
+  symptoms:
+  - systemctl status systemd-networkd shows active, but IP not assigned
+  - IP address not configured after boot
+  - Networking interfaces show as 'unmanaged' or 'down'
+  causes:
+  - Network unit file has syntax errors
+  - Link configuration mismatch (MAC, IP, nameservers)
+  - Networkd controller disabled via systemctl
+  diagnosis:
+  - systemctl status systemd-networkd
+  - nmcli device show <interface>
+  - systemd-networkctl status
+  resolution:
+  - 'Check unit file syntax: systemd-analyze verify systemd-networkd.service'
+  - 'Manually configure network: sudo ip addr add 192.168.1.2/24 dev eth0'
+  - 'Disable networkd and use NetworkManager: sudo systemctl disable --now systemd-networkd'
+  commands:
+  - systemd-analyze verify systemd-networkd.service
+  - systemd-networkctl status
+  - sudo nmcli device show
+  - sudo systemctl disable --now systemd-networkd
+  sources:
+  - name: man systemd-networkd
+    url: https://man7.org/linux/man-pages/man1/systemd-networkd.1.html
+  - name: man systemd-networkctl
+    url: https://man7.org/linux/man-pages/man1/systemd-networkctl.1.html
+  related: []
+- id: deb-systemd-resolved-issues
+  title: Systemd-resolved issues - DNS not working
+  os: debian
+  category: systemd
+  severity: common
+  keywords:
+  - systemd-resolved
+  - DNS
+  - nslookup
+  - ping
+  symptoms:
+  - nslookup google.com fails / ping DNS cannot resolve
+  - systemd-resolved is active but no DNS entries in /etc/resolv.conf
+  - log show --no-pager -u systemd-resolved
+  causes:
+  - systemd-resolved not running or disabled
+  - DNS servers not configured in /etc/systemd/resolved.conf
+  - DNS stub listener disabled
+  diagnosis:
+  - systemctl status systemd-resolved
+  - resolvedectl status
+  - cat /etc/systemd/resolved.conf
+  resolution:
+  - 'Enable/respawn: sudo systemctl enable --now systemd-resolved'
+  - 'Configure DNS: sudo tee /etc/systemd/resolved.conf <<< ''DNS=8.8.8.8 8.8.4.4'''
+  - 'Restart: sudo systemctl restart systemd-resolved'
+  sources:
+  - name: man systemd-resolved
+    url: https://man7.org/linux/man-pages/man8/systemd-resolved.8.html
+  - name: man resolvedectl
+    url: https://man7.org/linux/man-pages/man1/resolvedectl.1.html
+  related: []
+  commands:
+  - systemctl status systemd-resolved
+  - sudo tee /etc/systemd/resolved.conf <<< "DNS=8.8.8.8 8.8.4.4"
+  - systemctl restart systemd-resolved
+  - resolvedectl status
+- id: deb-systemd-tmpfiles-wasted-space
+  title: systemd-tmpfiles - /tmp and /var/tmp growing without bound
+  os: debian
+  category: systemd
+  severity: moderate
+  keywords:
+  - tmpfiles
+  - tmp
+  - cache
+  - space
+  symptoms:
+  - df -h shows high usage in /var/tmp or /var/tmp
+  - systemctl status systemd-tmpfiles-setup.service shows failure
+  causes:
+  - tmpfiles configuration not applied
+  - Log files not cleaned
+  - Missing tmpfiles configuration for cleanup
+  diagnosis:
+  - systemctl status systemd-tmpfiles-setup.service
+  - find /tmp -type f -atime +1 -print | head
+  - cat /etc/tmpfiles.d/*.conf
+  resolution:
+  - 'Run tmpfiles script: sudo systemd-tmpfiles --clean'
+  - 'Update tmpfiles config: sudo tee /etc/tmpfiles.d/tmpfiles.conf << EOF O /tmp
+    0755 root root 1d O /var/tmp 0755 root root 1d EOF'
+  - sudo find /tmp -type f -atime +1 -exec rm {} \;
+  sources:
+  - name: man systemd-tmpfiles
+    url: https://man7.org/linux/man-pages/man8/systemd-tmpfiles.8.html
+  - name: man tmpfiles.conf
+    url: https://www.freedesktop.org/software/systemd/man/tmpfiles.conf.html
+  related: []
+  commands:
+  - systemctl status systemd-tmpfiles-setup.service
+  - sudo systemd-tmpfiles --clean
+  - 'sudo tee /etc/tmpfiles.d/tmpfiles.conf << "EOF"
+
+    O /tmp 0755 root root 1d
+
+    O /var/tmp 0755 root root 1d
+
+    EOF'
+  - sudo find /tmp -type f -atime +1 -exec rm {} \;

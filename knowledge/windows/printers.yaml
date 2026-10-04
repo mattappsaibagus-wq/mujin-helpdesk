@@ -1,0 +1,128 @@
+- id: win-printer-driver
+  title: Printer driver not installed / printer offline
+  os: windows
+  category: printers-peripherals
+  severity: common
+  keywords:
+  - printer
+  - driver
+  - offline
+  - not-installed
+  - spooler
+  symptoms:
+  - Printer shows offline
+  - Driver missing or corrupted
+  - Print jobs stuck in queue
+  - Error 0x00000002 or 0x00000006
+  causes:
+  - Printer driver not installed or corrupt
+  - Print Spooler service not running
+  - Paper jam or offline state
+  diagnosis:
+  - Get-Printer | Format-Table Name, PrinterStatus
+  - Get-Service -Name Spooler
+  - 'Check printer queue: C:\Windows\System32\spool\PRINTERS'
+  resolution:
+  - 'Restart spooler: Restart-Service -Name Spooler'
+  - 'Reinstall driver: Add-PrinterDriver -Name ''<driver>'''
+  - 'Clear queue: Remove-Item C:\Windows\System32\spool\PRINTERS\*'
+  - 'Re-add printer: Add-Printer -Name ''<name>'' -DriverName ''<driver>'' -PortName
+    ''<port>'''
+  commands:
+  - Get-Service -Name Spooler
+  - Restart-Service -Name Spooler
+  - Get-Printer | Format-Table Name, PrinterStatus
+  - Remove-Item C:\Windows\System32\spool\PRINTERS\*
+  - powershell -Command 'Get-Printer | Remove-Printer'
+  - powershell -Command 'Add-Printer -Name "<name>" -DriverName "<driver>" -PortName
+    "<port>"'
+  sources:
+  - name: Microsoft Docs - Printer troubleshooting
+    url: https://support.microsoft.com/en-us/windows/fix-printer-problems-in-windows-11
+  - name: Add printer via PowerShell
+    url: https://learn.microsoft.com/en-us/powershell/module/printmanagement/add-printer
+  related:
+  - win-printer-spooler
+  - win-printer-network
+- id: win-printer-spooler
+  title: Print Spooler service failing / stuck jobs
+  os: windows
+  category: printers-peripherals
+  severity: common
+  keywords:
+  - spooler
+  - print
+  - queue
+  - stuck
+  - frozen
+  - not-printing
+  symptoms:
+  - Print jobs stuck in queue
+  - Spooler service not starting or crashing
+  - Cannot add/remove printers
+  causes:
+  - Spooler crashed and needs restart
+  - Corrupt print job in queue
+  - Spooler service permissions issue
+  diagnosis:
+  - Get-Service -Name Spooler
+  - Get-Printer | Format-Table Name, PrinterStatus
+  - 'Check queue: C:\Windows\System32\spool\PRINTERS'
+  resolution:
+  - 'Restart spooler: Restart-Service -Name Spooler'
+  - 'Clear queue: Remove-Item C:\Windows\System32\spool\PRINTERS\*'
+  - 'Reinstall printer: powershell -Command ''Get-Printer | Remove-Printer'''
+  commands:
+  - Restart-Service -Name Spooler
+  - Remove-Item C:\Windows\System32\spool\PRINTERS\*
+  - Get-Printer | Remove-Printer
+  - Add-Printer -Name '<name>' -DriverName '<driver>' -PortName '<port>'
+  sources:
+  - name: Microsoft Docs - Printer troubleshooting
+    url: https://support.microsoft.com/en-us/windows/fix-printer-problems-in-windows-11
+  - name: Reset print spooler
+    url: https://learn.microsoft.com/en-us/windows-server/printing/troubleshoot-server/spooler-troubleshooting
+  related:
+  - win-printer-driver
+  - win-printer-network
+- id: win-printer-network
+  title: Network printer not accessible / shared printer
+  os: windows
+  category: printers-peripherals
+  severity: common
+  keywords:
+  - network
+  - printer
+  - shared
+  - server
+  - ip
+  symptoms:
+  - Cannot find shared printer on network
+  - Network printer shows offline or unavailable
+  - Printer is shared from another computer
+  causes:
+  - Printer sharing disabled
+  - Network discovery off
+  - Incorrect printer IP
+  diagnosis:
+  - 'Test connection: Test-NetComputerName <printer> -Port 9100'
+  - 'Check sharing: Get-Printer | Format-Table Name, Shared, ShareName'
+  - 'Check discovery: Get-NetFirewallRule -DisplayGroup ''File and Printer Sharing'''
+  resolution:
+  - 'Enable sharing: Set-Printer -Name ''<name>'' -Shared $true'
+  - 'Enable discovery: Set-NetFirewallRule -DisplayGroup ''File and Printer Sharing''
+    -Enabled True'
+  - 'Use direct IP: Add-Printer -PortName ''<ip>'' -DriverName ''<driver>'''
+  commands:
+  - Test-NetComputerName <printer> -Port 9100
+  - Get-Printer | Format-Table Name, Shared
+  - Set-Printer -Name '<name>' -Shared $true
+  - Add-Printer -PortName '<ip>' -DriverName '<driver>'
+  sources:
+  - name: Microsoft Docs - Shared printer
+    url: https://learn.microsoft.com/en-us/windows-server/printing/troubleshoot-server/printer-sharing-troubleshooting
+  - name: Add network printer
+    url: https://learn.microsoft.com/en-us/windows-server/printing/troubleshoot-server/add-network-printer
+  related:
+  - win-printer-driver
+  - win-printer-spooler

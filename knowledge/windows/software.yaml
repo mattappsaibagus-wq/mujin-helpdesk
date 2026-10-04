@@ -1,0 +1,200 @@
+- id: win-winget-install-fail
+  title: winget install fails / package not found
+  os: windows
+  category: software
+  severity: common
+  keywords:
+  - winget
+  - install
+  - package
+  - not-found
+  - msix
+  - app
+  symptoms:
+  - winget install <package> fails with 'Package not found'
+  - Unable to locate package on source
+  - Error code 0x80070057 or 0x800704CF
+  causes:
+  - Package name incorrect or not on available source
+  - No valid repository configured
+  - Network issues blocking source
+  diagnosis:
+  - winget source list
+  - winget search <package-name>
+  - winget source show
+  resolution:
+  - 'Search correct name: winget search <term>'
+  - 'Add source: winget source add --id Microsoft.WindowsApp'
+  - 'Check updates: winget upgrade'
+  commands:
+  - winget source list
+  - winget search <package-name>
+  - winget source add --id Microsoft.WindowsApp
+  - winget install <correct-package-name>
+  sources:
+  - name: Microsoft Docs - winget
+    url: https://learn.microsoft.com/en-us/windows/package-manager/winget/
+  - name: winget reference
+    url: https://github.com/microsoft/winget-cli
+  related: []
+- id: win-store-install-fail
+  title: Microsoft Store install fails / app won't download
+  os: windows
+  category: software
+  severity: moderate
+  keywords:
+  - store
+  - install
+  - app
+  - download
+  - ms-store
+  symptoms:
+  - Microsoft Store won't open
+  - App download stuck at 0% or fails
+  - Error code 0x80070005 or 0x800704D
+  causes:
+  - Store cache corrupted
+  - Account not signed in
+  - Windows Update pending
+  diagnosis:
+  - wsreset.exe
+  - 'Check account: Settings -> Accounts -> Your info'
+  - Check Windows Update status
+  resolution:
+  - 'Reset Store cache: wsreset.exe (run in Run dialog)'
+  - Sign out and back in to Microsoft account
+  - 'Check for Windows updates: Settings -> Update & Security'
+  commands:
+  - wsreset.exe
+  - Get-AppxPackage -AllUsers
+  - PowerShell -Command 'Add-AppxPackage -Path <app_x64.appx>'
+  sources:
+  - name: Microsoft Support - Store issues
+    url: https://support.microsoft.com/en-us/windows/fix-microsoft-store-issues-5a281e58-5c28-4f11-9b72-3515b4c37150
+  - name: Reset Store cache
+    url: https://learn.microsoft.com/en-us/windows/api/resetwinstoreapps/
+  related: []
+- id: win-updates-stuck
+  title: Windows Update stuck / won't install
+  os: windows
+  category: updates-drivers
+  severity: common
+  keywords:
+  - update
+  - windows
+  - stuck
+  - install
+  - '0x80070002'
+  - '0x80070003'
+  symptoms:
+  - Update progress stays at 0% or 30%
+  - 'Error codes: 0x80070002, 0x80070003, 0x80070020'
+  - Update history shows same update repeatedly
+  causes:
+  - Pending Windows Update service
+  - Update files corrupted
+  - Third-party AV blocking updates
+  diagnosis:
+  - 'Check status: Get-WindowsUpdateLog'
+  - 'Run troubleshooter: Get-WindowsUpdateDiagnostic'
+  - 'Pending operations: Get-ItemProperty ''HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Update\UpdateInProgress'''
+  resolution:
+  - 'Reset update components: net stop wuauserv && net stop cryptSvc && ren C:\Windows\SoftwareDistribution
+    SoftwareDistribution.old && ren C:\Windows\System32\catroot2 catroot2.old && net
+    start wuauserv && net start cryptSvc'
+  - 'Run troubleshooter: Settings -> Update & Security -> Troubleshoot -> Windows
+    Update'
+  - Check for third-party AV interference
+  commands:
+  - net stop wuauserv
+  - net stop cryptSvc
+  - ren C:\Windows\SoftwareDistribution SoftwareDistribution.old
+  - ren C:\Windows\System32\catroot2 catroot2.old
+  - net start wuauserv
+  - net start cryptSvc
+  - Get-WindowsUpdateLog
+  sources:
+  - name: Microsoft Support - Update troubleshooting
+    url: https://support.microsoft.com/en-us/windows/solve-problems-updating-windows-16535131-67e3-26a7-9c89-116d35a6e4c9
+  - name: Reset Windows Update
+    url: https://learn.microsoft.com/en-us/troubleshoot/windows/windows-update/reset-update-components-in-windows-10
+  related: []
+- id: win-legacy-installer
+  title: Legacy .msi installer fails
+  os: windows
+  category: software
+  severity: moderate
+  keywords:
+  - msi
+  - installer
+  - install
+  - fail
+  - error-1603
+  - '1603'
+  symptoms:
+  - Setup failed. Error 1603
+  - Cannot install legacy application
+  - MSI package cannot be opened
+  causes:
+  - Corrupt installer package
+  - Windows Installer service not running
+  - Permissions issue on install location
+  diagnosis:
+  - services.msc -> Check Windows Installer service
+  - 'Event Viewer: Application logs with error 1603'
+  - Verify install location permissions
+  resolution:
+  - 'Restart Windows Installer service: services.msc'
+  - 'Repair install: Use /b /a switches'
+  - 'Clean install via Elevated CMD: msiexec /i <file>.msi /l*v <logfile>'
+  - 'Check system health: sfc /scannow'
+  commands:
+  - services.msc
+  - sfc /scannow
+  - msiexec /i <package>.msi /l*v %TEMP%\install.log
+  - msiexec /fvomg <package>.msi
+  sources:
+  - name: Microsoft Docs - MSI error 1603
+    url: https://learn.microsoft.com/en-us/windows/win32/setup/error-1603
+  - name: Fix Windows Installer issues
+    url: https://support.microsoft.com/en-us/windows/fix-problems-that-prevent-you-from-installing-or-running-programs-79ebb63e-9e15-4b3a-8b85-1a63d5e85450
+  related: []
+- id: win-antiav-block
+  title: Third-party AV blocking installation
+  os: windows
+  category: software
+  severity: common
+  keywords:
+  - antivirus
+  - av
+  - block
+  - install
+  - false-positive
+  - quarantined
+  symptoms:
+  - Installer blocked by antivirus
+  - File quarantined during install
+  - Windows Defender SmartScreen warning
+  causes:
+  - Real-time protection flagging installer
+  - Third-party AV quarantining package
+  - SmartScreen blocking unknown publisher
+  diagnosis:
+  - 'Check AV quarantine: Open third-party AV UI'
+  - 'Check SmartScreen: More info -> Run anyway'
+  - 'Check event viewer: Application logs'
+  resolution:
+  - 'Temporarily disable AV: services.msc -> Stop <AV service>'
+  - Add exception/install directory
+  - 'Use: Right-click -> More info -> Run anyway'
+  - Whitelist installer in AV
+  commands:
+  - services.msc
+  - Right-click installer -> More info -> Run anyway
+  - Add exception in <AV> settings
+  sources:
+  - name: Microsoft Docs - SmartScreen
+    url: https://learn.microsoft.com/en-us/windows-protector/security-protection/smartscreen
+  - name: Third-party AV docs
+    url: https://support.microsoft.com/en-us/
+  related: []

@@ -1,0 +1,134 @@
+- id: win-wifi-no-internet
+  title: "Connected to WiFi but no internet access"
+  os: windows
+  category: network-wifi
+  severity: common
+  keywords: [wifi, internet, connected, no-access, ip, dns]
+  symptoms:
+    - "WiFi shows 'No Internet, secured'"
+    - "Local access only, ping local gateway works but internet fails"
+    - "DNS_PROBE_FINISHED_BAD_CONFIG"
+  causes:
+    - "DNS server not responding or misconfigured"
+    - "IP address not assigned (APIPA 169.254.x.x)"
+    - "WiFi adapter driver issue"
+    - "Router or ISP issue"
+  diagnosis:
+    - "Get-NetIPConfiguration"
+    - "Test-NetConnection 8.8.8.8"
+    - "Resolve-DnsName google.com"
+    - "netsh wlan show interfaces"
+  resolution:
+    - "Release/renew IP: ipconfig /release && ipconfig /renew"
+    - "Set DNS: netsh interface ipv4 set dnsservers 'Wi-Fi' dhcp; netsh interface ipv4 add dnsservers 'Wi-Fi' 8.8.8.8"
+    - "Reset TCP/IP: netsh winsock reset && netsh int ip reset"
+    - "Update driver: Device Manager -> Network Adapters -> Update driver"
+  commands:
+    - "Get-NetIPConfiguration"
+    - "Test-NetConnection 8.8.8.8"
+    - "Resolve-DnsName google.com"
+    - "netsh wlan show interfaces"
+    - "ipconfig /release && ipconfig /renew"
+    - "netsh interface ipv4 set dnsservers 'Wi-Fi' dhcp"
+    - "netsh winsock reset && netsh int ip reset"
+  sources:
+    - {name: "Microsoft Support - WiFi no internet", url: "https://support.microsoft.com/en-us/windows/fix-wi-fi-network-connection-issues-in-windows-70ac142f-453d-2060-2b8e-0aedd557a6ec"}
+    - {name: "Troubleshoot TCP/IP", url: "https://learn.microsoft.com/en-us/troubleshoot/windows-server/networking/tcpip-connectivity"}
+  related: []
+
+- id: win-network-adapters
+  title: "Network adapter issues - disabled or not working"
+  os: windows
+  category: network-wifi
+  severity: common
+  keywords: [network, adapter, disabled, not-working, ethernet]
+  symptoms:
+    - "Network adapter shows disabled in Device Manager"
+    - "Ethernet cable plugged in but no connection"
+    - "Adapter missing from Network Connections"
+  causes:
+    - "Adapter disabled manually or via group policy"
+    - "Driver corrupted or missing"
+    - "Hardware failure"
+  diagnosis:
+    - "Get-NetAdapter"
+    - "Get-PnpDevice -Class Net"
+    - "Get-NetAdapterStatistics"
+  resolution:
+    - "Enable adapter: Enable-NetAdapter -Name '<name>' -Confirm:$false"
+    - "Reinstall driver: pnputil /remove-device <instance>; pnputil /add-driver <driver.inf>"
+    - "Reset network stack: netsh winsock reset && netsh int ip reset"
+  commands:
+    - "Get-NetAdapter"
+    - "Get-PnpDevice -Class Net"
+    - "Enable-NetAdapter -Name '<name>' -Confirm:$false"
+    - "netsh winsock reset"
+    - "netsh int ip reset"
+  sources:
+    - {name: "Microsoft Docs - Get-NetAdapter", url: "https://learn.microsoft.com/en-us/powershell/module/networkconnection/get-netadapter"}
+    - {name: "Reset networking in Windows", url: "https://support.microsoft.com/en-us/windows/reset-network-settings-in-windows"}
+  related: [win-wifi-no-internet]
+
+- id: win-ip-conflict
+  title: "IP address conflict - duplicate address detected"
+  os: windows
+  category: network-wifi
+  severity: moderate
+  keywords: [ip, conflict, duplicate, address, dhcp]
+  symptoms:
+    - "Windows notifies 'There is an IP conflict with another system on the network'"
+    - "Network connectivity drops intermittently"
+    - "ARP request conflicts"
+  causes:
+    - "Two devices configured with same static IP"
+    - "DHCP server malfunction"
+    - "VMware/VirtualBox with same MAC address"
+  diagnosis:
+    - "arp -a"
+    - "Get-NetIPAddress | Where-Object {$_.AddressState -eq 'Duplicate'}"
+    - "ipconfig /all"
+  resolution:
+    - "Release/renew: ipconfig /release && ipconfig /renew"
+    - "Change static IP to unused address"
+    - "Restart DHCP service or server"
+  commands:
+    - "arp -a"
+    - "ipconfig /release && ipconfig /renew"
+    - "Get-NetIPAddress | Where-Object {$_.AddressState -eq 'Duplicate'}"
+    - "ipconfig /flushdns"
+  sources:
+    - {name: "Microsoft Support - IP conflict", url: "https://support.microsoft.com/en-us/windows/what-does-ip-address-conflict-with-another-system-on-the-network-mean-7264a4f9-1a9a-46a2-9b5a-60d2a003d0d3"}
+    - {name: "Detect and remove IP conflicts", url: "https://learn.microsoft.com/en-us/troubleshoot/windows-server/networking/detect-and-resolve-tcp-port-conflicts"}
+  related: [win-wifi-no-internet]
+
+- id: win-vpn-not-connecting
+  title: "VPN connection fails / disconnected"
+  os: windows
+  category: network-wifi
+  severity: common
+  keywords: [vpn, connection, disconnected, ras, error]
+  symptoms:
+    - "VPN connection fails with error 619 or 800"
+    - "VPN connects but drops after a few minutes"
+    - "Can't ping remote network after VPN connects"
+  causes:
+    - "VPN server not reachable on port 1723 or 443"
+    - "Firewall blocking VPN traffic"
+    - "Incorrect VPN type (PPTP/SSTP/L2TP/IKEv2)"
+    - "VPN credentials expired"
+  diagnosis:
+    - "Test connection: Test-NetConnection <vpn-server> -Port 1723"
+    - "Check VPN adapters: Get-VpnConnection"
+    - "Check firewall: Get-NetFirewallRule -Group 'VPN'"
+  resolution:
+    - "Verify server address and port in: rasphone.exe"
+    - "Try different VPN type: VPN Properties -> Networking -> Type of VPN"
+    - "Allow VPN through firewall: Enable-NetFirewallRule -Group 'VPN'"
+  commands:
+    - "Test-NetConnection <vpn-server> -Port 1723"
+    - "Get-VpnConnection"
+    - "rasphone.exe"
+  sources:
+    - {name: "Microsoft Docs - VPN client", url: "https://learn.microsoft.com/en-us/windows-server/remote/remote-access/clients/vpn-connect-settings"}
+    - {name: "VPN error codes", url: "https://learn.microsoft.com/en-us/troubleshoot/windows/troubleshoot-remote-access-vpn-connections"}
+  related: []

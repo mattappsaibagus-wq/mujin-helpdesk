@@ -1,0 +1,127 @@
+- id: win-locked-out-account
+  title: "User account locked out / cannot log in"
+  os: windows
+  category: accounts-login
+  severity: common
+  keywords: [account, locked, login, cannot, log, domain]
+  symptoms:
+    - "User cannot log in to Windows"
+    - "Account is locked or disabled"
+    - "Password rejected"
+  causes:
+    - "Password entered incorrectly too many times"
+    - "Account manually locked by admin"
+    - "Domain controller issue for AD accounts"
+    - "Password expired and must be changed"
+  diagnosis:
+    - "net user <username>"
+    - "net user <username> /domain"
+    - "Check event viewer: Security logs for account lockout events"
+  resolution:
+    - "Unlock account: net user <username> /active:yes"
+    - "Reset password: net user <username> <new-password>"
+    - "For AD: Contact domain admin to unlock/reset"
+    - "If local: Use password reset disk or reset via installer"
+  commands:
+    - "net user <username>"
+    - "net user <username> <new-password>"
+    - "net user <username> /active:yes"
+    - "net user <username> /domain"
+  sources:
+    - {name: "Microsoft Docs - Local user account", url: "https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/net-user"}
+    - {name: "Reset local admin password", url: "https://support.microsoft.com/en-us/windows/reset-local-admin-password-on-a-domain-joined-device-96f4d305-4b6c-4c65-8e3c-2c37e96e8e5a"}
+  related: []
+
+- id: win-admin-account-disabled
+  title: "Built-in Administrator account is disabled"
+  os: windows
+  category: accounts-login
+  severity: moderate
+  keywords: [administrator, enabled, disabled, account, safe-mode]
+  symptoms:
+    - "Cannot perform admin tasks"
+    - "Need elevation but no admin account available"
+    - "Only standard user on machine"
+  causes:
+    - "Built-in Administrator was disabled after install"
+    - "Security policy disabled it"
+    - "User account accidentally modified"
+  diagnosis:
+    - "net user Administrator"
+    - "Open safe-mode: restart and press 4 or F4"
+    - "Check Local Security Policy"
+  resolution:
+    - "Enable built-in admin: net user Administrator /active:yes"
+    - "Or enable via Safe Mode + Local Users and Groups (lusrmgr.msc)"
+  commands:
+    - "net user Administrator /active:yes"
+    - "lusrmgr.msc"
+    - "reboot into Safe Mode (F8 or Shift+Restart)"
+  sources:
+    - {name: "Microsoft Docs - Admin account", url: "https://learn.microsoft.com/en-us/windows/security/identity-protection/accounts-local-user/enable-the-built-in-administrator-account"}
+    - {name: "Safe mode", url: "https://support.microsoft.com/en-us/windows/start-your-pc-in-safe-mode-windows-11-4cbb0f70-b517-5c3f-8d2e-a0f4c0e3d1e5"}
+  related: []
+
+- id: win-password-reset-disk
+  title: "Reset password with password reset disk"
+  os: windows
+  category: accounts-login
+  severity: moderate
+  keywords: [password, reset, disk, usb, recovery]
+  symptoms:
+    - "Forgot Windows password"
+    - "Password reset disk needed"
+    - "Cannot access account"
+  causes:
+    - "User forgot password and has no reset disk"
+    - "No password hint available"
+  diagnosis:
+    - "Insert password reset disk and restart"
+    - "Local account vs domain account"
+  resolution:
+    - "Use password reset disk: insert disk, follow prompts"
+    - "Create new local admin via installation media: boot from USB, repair computer -> Command prompt -> net user"
+  commands:
+    - "diskpart"
+    - "list volume"
+    - "exit"
+    - "bootrec /rebuildbcd"
+  sources:
+    - {name: "Create password reset disk", url: "https://support.microsoft.com/en-us/windows/create-a-password-reset-disk-23190cfd-399c-4f32-8248-f163417e7418"}
+    - {name: "Reset password via installation media", url: "https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/create-a-local-admin-with-installation-media"}
+  related: [win-locked-out-account]
+
+- id: win-domain-join-fail
+  title: "Computer cannot join domain / AD join fails"
+  os: windows
+  category: accounts-login
+  severity: common
+  keywords: [domain, ad, join, join-domain, dc, controller]
+  symptoms:
+    - "This computer cannot join the domain"
+    - "The following error occurred: The RPC server is unavailable"
+    - "DNS cannot resolve the domain name"
+  causes:
+    - "DNS cannot resolve domain controller"
+    - "Network unreachable / firewall blocking port 88, 389, 445, 3268, 3269"
+    - "SPN mismatch or trust issue"
+    - "Computer account already exists, stale"
+  diagnosis:
+    - "nslookup <domain>"
+    - "ping <domain-controller>"
+    - "Check network connectivity"
+  resolution:
+    - "Ensure DNS resolves to DC: set DNS to DC IP"
+    - "Check network connectivity to required ports"
+    - "Remove and re-join: Remove-Computer -ComputerName <name> -Force; Add-Computer -DomainName <domain> -Credential (Get-Credential)"
+    - "Register SPN: setspn -A <service/host> <domain>"
+  commands:
+    - "nslookup <domain>"
+    - "ping <domain-controller-FQDN>"
+    - "Remove-Computer -ComputerName <name> -Force"
+    - "Add-Computer -DomainName <domain> -Credential (Get-Credential)"
+    - "setspn -A <service/host> <domain>"
+  sources:
+    - {name: "Microsoft Docs - Join a device to a domain", url: "https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/join-a-computer-to-a-domain"}
+    - {name: "Troubleshoot domain join", url: "https://learn.microsoft.com/en-us/troubleshoot/windows-server/windows-security/troubleshoot-domain-join-failures"}
+  related: [win-locked-out-account]

@@ -1,0 +1,129 @@
+- id: deb-no-internet-dns
+  title: "No internet connection / DNS issues"
+  os: debian
+  category: networking
+  severity: common
+  keywords: [internet, dns, networking, connection]
+  symptoms:
+    - "Cannot browse the web despite interface being up"
+    - "ping works but nslookup/google.com fails"
+    - "apt-get update fails due to DNS resolution"
+  causes:
+    - "DNS misconfiguration in /etc/resolv.conf"
+    - "NetworkManager not running"
+    - "DHCP not offering DNS"
+  diagnosis:
+    - "cat /etc/resolv.conf"
+    - "ip addr show"
+    - "nmcli device show <interface>"
+    - "ping -c 3 8.8.8.8"
+  resolution:
+    - "Configure DNS: echo 'nameserver 8.8.8.8' | sudo tee /etc/resolv.conf"
+    - "Or use NetworkManager: sudo nmcli device modify <interface> ipv4.dns '8.8.8.8 8.8.4.4'"
+    - "Restart network: sudo systemctl restart NetworkManager"
+  commands:
+    - "cat /etc/resolv.conf"
+    - "sudo tee /etc/resolv.conf <<<'nameserver 8.8.8.8'"
+    - "sudo systemctl restart NetworkManager"
+    - "ping -c 3 8.8.8.8"
+    - "ping -c 3 google.com"
+  sources:
+    - {name: "Debian Wiki - Networking", url: "https://wiki.debian.org/Networking"}
+    - {name: "man resolv.conf", url: "https://man7.org/linux/man-pages/man5/resolv.conf.5.html"}
+  related: [deb-no-internet-proxy]
+
+- id: deb-no-internet-proxy
+  title: "No internet through proxy / apt behind corporate proxy"
+  os: debian
+  category: networking
+  severity: moderate
+  keywords: [proxy, no-internet, http, https, apt]
+  symptoms:
+    - "Cannot reach internet, direct connection works"
+    - "apt-get update fails behind proxy"
+    - "curl/wget work but apt doesn't"
+  causes:
+    - "Proxy environment variables not set"
+    - "APT not configured for proxy"
+    - "Proxy authentication required"
+  diagnosis:
+    - "env | grep -i proxy"
+    - "cat /etc/apt/apt.conf | grep Proxy"
+    - "cat /etc/apt/apt.conf.d/99proxy"
+  resolution:
+    - "Set proxy env vars: export http_proxy='http://proxy:port'"
+    - "Configure APT: sudo tee /etc/apt/apt.conf.d/99proxy <<< 'Acquire::http::Proxy \"http://proxy:port\";'"
+    - "For auth proxy: 'Acquire::http::Proxy \"http://user:pass@proxy:port\";'"
+  commands:
+    - "export http_proxy='http://proxy.example.com:8080'"
+    - "export https_proxy='http://proxy.example.com:8080'"
+    - "sudo apt-get update"
+  sources:
+    - {name: "Debian Wiki - APT Proxy", url: "https://wiki.debian.org/APT/Proxy"}
+    - {name: "man apt.conf", url: "https://man7.org/linux/man-pages/man5/apt.conf.5.html"}
+  related: []
+
+- id: deb-ssh-config
+  title: "SSH configuration issues - connection refused / key auth failed"
+  os: debian
+  category: networking
+  severity: common
+  keywords: [ssh, sshd, connection, refused, key, auth]
+  symptoms:
+    - "ssh <host> connection refused"
+    - "ssh key authentication fails, password prompt appears"
+    - "Permission denied (publickey)"
+  causes:
+    - "sshd service not running"
+    - "Firewall blocking port 22"
+    - "Wrong permissions on ~/.ssh/authorized_keys"
+    - "PubkeyAuthentication no in sshd_config"
+  diagnosis:
+    - "systemctl status ssh"
+    - "sshd -T | grep -i pubkey"
+    - "ls -la ~/.ssh/authorized_keys"
+    - "cat /etc/ssh/sshd_config"
+  resolution:
+    - "Start/enable ssh: sudo systemctl enable --now ssh"
+    - "Fix key permissions: chmod 600 ~/.ssh/authorized_keys && chmod 700 ~/.ssh"
+    - "Enable PubkeyAuthentication in /etc/ssh/sshd_config and restart sshd"
+    - "Check firewall: sudo ufw allow 22/tcp"
+  commands:
+    - "systemctl status ssh"
+    - "sudo systemctl enable --now ssh"
+    - "chmod 600 ~/.ssh/authorized_keys"
+    - "chmod 700 ~/.ssh"
+    - "sudo ufw allow 22/tcp"
+  sources:
+    - {name: "Debian Wiki - SSH", url: "https://wiki.debian.org/SSH"}
+    - {name: "man sshd_config", url: "https://man7.org/linux/man-pages/man5/sshd_config.5.html"}
+  related: []
+
+- id: deb-static-ip
+  title: "Configure static IP / NetworkManager configuration"
+  os: debian
+  category: networking
+  severity: moderate
+  keywords: [static, ip, networkmanager, nmcli, interface]
+  symptoms:
+    - "Need to set fixed IP address for server"
+    - "DHCP keeps changing IP"
+    - "Interface not coming up with correct IP"
+  causes:
+    - "No static configuration in NetworkManager"
+    - "Interface configured for DHCP but needs static"
+  diagnosis:
+    - "nmcli con show"
+    - "ip addr show <interface>"
+    - "cat /etc/network/interfaces"
+  resolution:
+    - "Set static via nmcli: sudo nmcli con mod <connection> ipv4.method manual ipv4.addresses '192.168.1.50/24' ipv4.gateway '192.168.1.1' ipv4.dns '8.8.8.8 8.8.4.4'"
+    - "Bring up: sudo nmcli con up <connection>"
+  commands:
+    - "nmcli con show"
+    - "sudo nmcli con mod <connection> ipv4.method manual ipv4.addresses '192.168.1.50/24' ipv4.gateway '192.168.1.1' ipv4.dns '8.8.8.8 8.8.4.4'"
+    - "sudo nmcli con up <connection>"
+  sources:
+    - {name: "man nmcli", url: "https://man7.org/linux/man-pages/man1/nmcli.1.html"}
+    - {name: "NetworkManager documentation", url: "https://networkmanager.dev/docs/api/1.0/"}
+  related: []

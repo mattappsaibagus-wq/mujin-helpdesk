@@ -1,0 +1,371 @@
+- id: deb-apt-lock
+  title: "E: Unable to acquire the dpkg frontend lock"
+  os: debian
+  category: packages
+  severity: common
+  keywords: [apt, dpkg, lock, install]
+  symptoms:
+    - "apt/dpkg says it cannot get the lock / another process is running"
+  causes:
+    - "unattended-upgrades or another apt is running"
+    - "a previous apt command was interrupted"
+  diagnosis:
+    - "pgrep -a apt"
+    - "ls -l /var/lib/dpkg/lock-frontend"
+  resolution:
+    - "Wait for the running apt to finish"
+    - "sudo dpkg --configure -a; sudo apt-get install -f"
+  commands:
+    - "pgrep -a apt"
+    - "sudo dpkg --configure -a"
+    - "sudo apt-get update"
+  sources:
+    - {name: "Debian Wiki - dpkg lock", url: "https://wiki.debian.org/DpkgLock"}
+    - {name: "man apt-get", url: "https://man7.org/linux/man-pages/man8/apt-get.8.html"}
+  related: [deb-apt-install-fail]
+
+- id: deb-apt-404
+  title: "404 Not Found errors when running apt"
+  os: debian
+  category: packages
+  severity: common
+  keywords: [apt, 404, repository, package]
+  symptoms:
+    - "apt-get update fails with 404 Not Found for some packages"
+    - "Unable to fetch some archives, maybe run apt-get update or try with --fix-missing"
+  causes:
+    - "Package repository removed or URL changed in sources.list"
+    - "Mirror out of sync"
+  diagnosis:
+    - "grep -E '^deb ' /etc/apt/sources.list"
+    - "apt-cache policy <package-name>"
+  resolution:
+    - "Update /etc/apt/sources.list to use a current mirror"
+    - "Run: sudo apt-get update"
+  commands:
+    - "sudo nano /etc/apt/sources.list"
+    - "sudo apt-get update"
+  sources:
+    - {name: "Debian Repository Mirror", url: "https://deb.debian.org/debian/"}
+    - {name: "Changing repository mirrors", url: "https://wiki.debian.org/Mirrors"}
+  related: []
+
+- id: deb-sudo-denied
+  title: "sudo: unable to resolve hostname"
+  os: debian
+  category: permissions-auth
+  severity: moderate
+  keywords: [sudo, hostname, DNS, resolve]
+  symptoms:
+    - "sudo: unable to resolve hostname"
+    - "sudo gives 'User X may not run sudo' or DNS errors"
+  causes:
+    - "/etc/hosts missing 127.0.1.1 entry or incorrect hostname"
+    - "DNS misconfiguration"
+  diagnosis:
+    - "cat /etc/hosts"
+    - "hostname -f"
+    - "getent hosts $(hostname)"
+  resolution:
+    - "Add correct hostname entry to /etc/hosts: 127.0.1.1 <hostname>"
+    - "Ensure /etc/hostname has the correct system name"
+  commands:
+    - "sudo sh -c 'echo \"127.0.1.1 $(hostname)\" >> /etc/hosts'"
+    - "sudo nano /etc/hosts"
+  sources:
+    - {name: "Debian Wiki - sudoers", url: "https://wiki.debian.org/sudoers"}
+    - {name: "man 5 hosts", url: "https://man7.org/linux/man-pages/man5/hosts.5.html"}
+  related: []
+
+- id: deb-gpg-error
+  title: "GPG error during apt-get update"
+  os: debian
+  category: packages
+  severity: moderate
+  keywords: [gpg, apt, signature, key]
+  symptoms:
+    - "GPG error: BADSIG <key-id> Some <key-id>"
+    - "The following signatures couldn't be verified: ..."
+  causes:
+    - "Expired or outdated signing key"
+    - "Repository moved to new infrastructure without key update"
+  diagnosis:
+    - "apt-key list"
+    - "grep BADSIG /var/log/apt/term.log"
+  resolution:
+    - "Identify the missing key and fetch it: sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys <key-id>"
+    - "Alternatively, create a new key and sign the repository"
+  commands:
+    - "sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys <KEY_ID>"
+    - "sudo apt-get update"
+  sources:
+    - {name: "Debian Wiki - APT Key Management", url: "https://wiki.debian.org/APT/Keyring"}
+    - {name: "man apt-key", url: "https://man7.org/linux/man-pages/man8/apt-key.8.html"}
+  related: []
+
+- id: deb-held-packages
+  title: "Show held packages in Debian"
+  os: debian
+  category: packages
+  severity: common
+  keywords: [apt, hold, pin, package]
+  symptoms:
+    - "Want to upgrade a package but it stays at the same version"
+    - "apt-show-versions shows <package> on hold"
+  causes:
+    - "Package is on hold (marked as held)"
+    - "APT preferences pin the package to a specific version"
+  diagnosis:
+    - "apt list --installed | grep '^.*hold'"
+    - "apt policy <package-name>"
+  resolution:
+    - "To upgrade: sudo apt-mark unhold <package> && sudo apt-get install <package>=<new-version>"
+    - "To view held packages: apt-mark showhold"
+  commands:
+    - "apt-mark showhold"
+    - "apt-mark unhold <package-name>"
+    - "sudo apt-get update && sudo apt-get install <package>"
+  sources:
+    - {name: "APT Howto - Hold", url: "https://www.debian.org/doc/manuals/apt-howto/"}
+    - {name: "man apt-mark", url: "https://man7.org/linux/man-pages/man8/apt-mark.8.html"}
+  related: []
+
+- id: deb-systemd-service-failed
+  title: "Systemd service failed to start"
+  os: debian
+  category: systemd
+  severity: common
+  keywords: [systemd, service, failed, start]
+  symptoms:
+    - "systemctl status shows failed"
+    - "service cannot start: Unit <name> could not be found"
+  causes:
+    - "Unit file missing or corrupted"
+    - "Dependency not found"
+    - "Incorrect service configuration"
+  diagnosis:
+    - "systemctl status <service-name>"
+    - "systemctl logs <service-name>"
+    - "journalctl -u <service-name>"
+  resolution:
+    - "Fix unit file or reinstall package providing the service"
+    - "systemctl reset-failure <service-name>"
+    - "systemctl daemon-reload"
+  commands:
+    - "systemctl status <service-name>"
+    - "systemctl reset-failure <service-name>"
+    - "systemctl daemon-reload"
+    - "systemctl start <service-name>"
+  sources:
+    - {name: "Debian Wiki - systemd", url: "https://wiki.debian.org/systemd"}
+    - {name: "man systemctl", url: "https://man7.org/linux/man-pages/man1/systemctl.1.html"}
+  related: [deb-systemd-enable-mask]
+
+- id: deb-systemd-enable-mask
+  title: "Systemd service is masked or disabled"
+  os: debian
+  category: systemd
+  severity: common
+  keywords: [systemd, service, enable, masked, disable]
+  symptoms:
+    - "systemctl enable <name> fails: Unit file does not exist, has no [Install] section, or is masked"
+    - "service is not starting on boot"
+  causes:
+    - "Service file is masked (symlink to /dev/null)"
+    - "Service was disabled via systemctl disable"
+    - "Unit file does not have an [Install] section"
+  diagnosis:
+    - "systemctl status <service-name>"
+    - "systemctl is-enabled <service-name>"
+    - "systemctl is-masked <service-name>"
+  resolution:
+    - "To unmask: systemctl unmask <service-name>"
+    - "To enable: systemctl enable <service-name>"
+    - "To disable: systemctl disable <service-name>"
+  commands:
+    - "systemctl is-enabled <service-name>"
+    - "systemctl is-masked <service-name>"
+    - "systemctl unmask <service-name>"
+    - "systemctl enable <service-name>"
+  sources:
+    - {name: "Debian Wiki - systemd", url: "https://wiki.debian.org/systemd"}
+    - {name: "man systemctl", url: "https://man7.org/linux/man-pages/man1/systemctl.1.html"}
+  related: [deb-systemd-service-failed]
+
+- id: deb-no-internet-dns
+  title: "No internet connection / DNS issues"
+  os: debian
+  category: networking
+  severity: common
+  keywords: [internet, dns, networking, connection]
+  symptoms:
+    - "Cannot browse the web despite interface being up"
+    - "ping works but nslookup/google.com fails"
+  causes:
+    - "DNS misconfiguration in /etc/resolv.conf"
+    - "NetworkManager not running"
+    - "DHCP not offering DNS"
+  diagnosis:
+    - "cat /etc/resolv.conf"
+    - "ip addr show"
+    - "nmcli device show <interface>"
+  resolution:
+    - "Configure DNS: echo 'nameserver 8.8.8.8' | sudo tee /etc/resolv.conf"
+    - "Or use NetworkManager: sudo nmcli device modify <interface> ipv4.dns '8.8.8.8 8.8.4.4'"
+    - "Restart network: sudo systemctl restart NetworkManager"
+  commands:
+    - "cat /etc/resolv.conf"
+    - "sudo tee /etc/resolv.conf <<<'nameserver 8.8.8.8'"
+    - "sudo systemctl restart NetworkManager"
+    - "ping -c 3 8.8.8.8"
+    - "ping -c 3 google.com"
+  sources:
+    - {name: "Debian Wiki - Networking", url: "https://wiki.debian.org/Networking"}
+    - {name: "man resolv.conf", url: "https://man7.org/linux/man-pages/man5/resolv.conf.5.html"}
+  related: [deb-no-internet-proxy]
+
+- id: deb-no-internet-proxy
+  title: "No internet through proxy"
+  os: debian
+  category: networking
+  severity: moderate
+  keywords: [proxy, no-internet, http, https]
+  symptoms:
+    - "Cannot reach internet, direct connection works"
+    - "apt-get update fails behind proxy"
+  causes:
+    - "Proxy environment variables not set"
+    - "APT not configured for proxy"
+  diagnosis:
+    - "env | grep -i proxy"
+    - "cat /etc/apt/apt.conf | grep Proxy"
+  resolution:
+    - "Set proxy env vars: export http_proxy='http://proxy:port'"
+    - "Configure APT: sudo nano /etc/apt/apt.conf.d/proxy"
+  commands:
+    - "export http_proxy='http://proxy.example.com:8080'"
+    - "export https_proxy='http://proxy.example.com:8080'"
+    - "sudo apt-get update"
+  sources:
+    - {name: "Debian Wiki - APT Proxy", url: "https://wiki.debian.org/APT/Proxy"}
+    - {name: "man apt.conf", url: "https://man7.org/linux/man-pages/man5/apt.conf.5.html"}
+  related: []
+
+- id: deb-pep-668
+  title: "PEP 668 / venv / pip install blocked"
+  os: debian
+  category: packages
+  severity: common
+  keywords: [python, pip, venv, PEP-668, exogenous]
+  symptoms:
+    - "pip install <package> fails with 'externally-managed-environment'"
+    - "PIP_REQUIRE_VIRTUALENV not set"
+  causes:
+    - "Debian 12+/13 ships Python with PEP 668 enabled by default"
+    - "Trying to pip install into system Python without a venv"
+  diagnosis:
+    - "python3 -c 'import sys; print(sys.prefix)'"
+    - "pip config debug"
+  resolution:
+    - "Use a virtual environment: python3 -m venv <venv-name> && source <venv-name>/bin/activate"
+    - "Or use pipx for CLI tools: pipx install <package>"
+    - "Or override with pip --break-system-packages <package>"
+  commands:
+    - "python3 -m venv myenv && source myenv/bin/activate"
+    - "pip install <package>"
+    - "pip install --break-system-packages <package>"
+  sources:
+    - {name: "PEP 668", url: "https://peps.python.org/pep-0668/"}
+    - {name: "man pip", url: "https://pip.pypa.io/en/stable/cli/pip_install/"}
+  related: []
+
+- id: deb-gpu-nvidia
+  title: "NVIDIA drivers on Debian"
+  os: debian
+  category: system
+  severity: moderate
+  keywords: [nvidia, driver, gpu, cuda]
+  symptoms:
+    - "glxinfo shows 'direct rendering: No'"
+    - "NVIDIA-SMI has failed because GPU driver is not loaded"
+  causes:
+    - "Wrong driver version installed"
+    - "Missing firmware"
+    - "X server configuration issue"
+  diagnosis:
+    - "lspci -k | grep -A3 'VGA'"
+    - "nvidia-smi"
+    - "dpkg -l | grep nvidia"
+  resolution:
+    - "Install correct driver via: sudo apt install nvidia-driver-xxx"
+    - "Or use Debian non-free firmware: sudo apt install firmware-misc-nonfree"
+  commands:
+    - "lspci -k | grep -A3 'VGA'"
+    - "sudo apt update"
+    - "sudo apt install nvidia-driver"
+    - "sudo reboot"
+  sources:
+    - {name: "Debian Wiki - NVIDIA", url: "https://wiki.debian.org/NVIDIA"}
+    - {name: "man nvidia-smi", url: "https://nvidia.github.io/nvidia-smi-doc/"}
+  related: []
+
+- id: deb-disk-full
+  title: "Disk full / no space left on device"
+  os: debian
+  category: storage
+  severity: common
+  keywords: [disk, space, full, quota]
+  symptoms:
+    - "No space left on device when writing files"
+    - "df -h shows 100% usage"
+  causes:
+    - "Log files grew unbounded"
+    - "Temporary files not cleaned"
+    - "Old kernels not removed"
+  diagnosis:
+    - "df -h"
+    - "du -sh /var/log"
+    - "ls -lh /var/log/journal/"
+  resolution:
+    - "Clean log files: sudo journalctl --vacuum-time=2d"
+    - "Remove old kernels: sudo apt autoremove"
+    - "Extend filesystem if applicable"
+  commands:
+    - "df -h"
+    - "du -sh /var/log/*"
+    - "sudo journalctl --vacuum-time=2d"
+    - "sudo apt autoremove"
+    - "sudo reboot"
+  sources:
+    - {name: "Debian Wiki - Disk Usage", url: "https://wiki.debian.org/Disk_Usage_Warning"}
+    - {name: "man df", url: "https://man7.org/linux/man-pages/man1/df.1.html"}
+  related: []
+
+- id: deb-fstab-mount
+  title: "fstab mount errors at boot"
+  os: debian
+  category: storage
+  severity: moderate
+  keywords: [fstab, mount, boot, error]
+  symptoms:
+    - "System won't boot / emergency mode"
+    - "Target filesystem doesn't have /etc/fstab entry"
+  causes:
+    - "Incorrect fstab entry"
+    - "UUID changed or disk reordered"
+    - "Filesystem not available at boot"
+  diagnosis:
+    - "systemctl status boot.mount"
+    - "journalctl -xb | grep fstab"
+  resolution:
+    - "Check /etc/fstab with: sudo mount -a"
+    - "Use UUIDs consistently: blkid"
+    - "Comment out problematic entry and boot with recovery mode"
+  commands:
+    - "sudo blkid"
+    - "sudo mount -a"
+    - "sudo nano /etc/fstab"
+  sources:
+    - {name: "Debian Wiki - fstab", url: "https://wiki.debian.org/fstab"}
+    - {name: "man fstab", url: "https://man7.org/linux/man-pages/man5/fstab.5.html"}
+  related: []

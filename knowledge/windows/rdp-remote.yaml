@@ -1,0 +1,129 @@
+- id: win-rdp-cannot-connect
+  title: "Remote Desktop cannot connect to the remote computer"
+  os: windows
+  category: rdp-remote
+  severity: common
+  keywords: [rdp, remote, desktop, connection, refused]
+  symptoms:
+    - "Remote Desktop Connection: 'This computer can't connect to the remote computer'"
+    - "Remote Desktop can't find the computer"
+    - "The connection was denied because the user account is not authorized"
+  causes:
+    - "Remote Desktop service not running on target"
+    - "Firewall blocking RDP port (3389)"
+    - "Network level authentication required but not available"
+    - "User not in Remote Desktop Users group"
+  diagnosis:
+    - "Test connection: Test-NetComputerName <target> -Port 3389"
+    - "Check service: Get-Service -Name TermService"
+    - "Check firewall: Get-NetFirewallRule -DisplayGroup 'Remote Desktop'"
+  resolution:
+    - "Enable Remote Desktop: System Properties -> Remote -> Allow remote connections"
+    - "Start service: Start-Service -Name TermService -StartupType Automatic"
+    - "Allow through firewall: Enable-NetFirewallRule -DisplayGroup 'Remote Desktop'"
+    - "Add user: Add-LocalGroupMember -Group 'Remote Desktop Users' -Member <user>"
+  commands:
+    - "Test-NetConnection <target> -Port 3389"
+    - "Get-Service -Name TermService"
+    - "Get-NetFirewallRule -DisplayGroup 'Remote Desktop'"
+    - "Enable-NetFirewallRule -DisplayGroup 'Remote Desktop'"
+    - "Add-LocalGroupMember -Group 'Remote Desktop Users' -Member <user>"
+  sources:
+    - {name: "Microsoft Support - Remote Desktop connection", url: "https://support.microsoft.com/en-us/windows/troubleshoot-remote-desktop-connection-errors-0ee7f45d-4c36-4f1c-9d04-159fd5806f33"}
+    - {name: "Enable Remote Desktop", url: "https://support.microsoft.com/en-us/windows/how-to-use-remote-desktop-7262640f-1756-4481-b031-6967944274f4"}
+  related: [win-rdp-black-screen, win-rdp-copy-paste]
+
+- id: win-rdp-black-screen
+  title: "Remote Desktop session shows black screen"
+  os: windows
+  category: rdp-remote
+  severity: moderate
+  keywords: [rdp, black, screen, display, graphics]
+  symptoms:
+    - "Remote Desktop connects but shows black/blank screen"
+    - "Cursor visible but no desktop rendered"
+    - "Session disconnects after few seconds"
+  causes:
+    - "Display driver issues on target machine"
+    - "RDP graphics configuration problem"
+    - "Monitor detection failure in virtual session"
+  diagnosis:
+    - "Check event viewer: Applications and Services Logs > Microsoft > Windows > TerminalServices-RemoteConnectionManager"
+    - "Try different color depth: mstsc /color:16"
+    - "Check graphics driver version: dxdiag"
+  resolution:
+    - "Reduce color depth: mstsc /color:16 /v:<target>"
+    - "Disable visual effects: System Properties -> Performance -> Adjust for best performance"
+    - "Update graphics drivers on target machine"
+    - "Use admin mode: mstsc /admin /v:<target>"
+  commands:
+    - "mstsc /color:16 /v:<target>"
+    - "mstsc /admin /v:<target>"
+    - "dxdiag"
+  sources:
+    - {name: "Microsoft Docs - RDP performance", url: "https://learn.microsoft.com/en-us/windows-server/remote/remote-desktop-services/clients/remote-desktop-allow-access"}
+    - {name: "Troubleshoot black screen", url: "https://learn.microsoft.com/en-us/windows-server/remote/remote-desktop-services/clients/remote-desktop-services-faq"}
+  related: [win-rdp-cannot-connect]
+
+- id: win-rdp-copy-paste
+  title: "Copy/paste not working in Remote Desktop session"
+  os: windows
+  category: rdp-remote
+  severity: common
+  keywords: [rdp, clipboard, copy, paste, rdpclip]
+  symptoms:
+    - "Cannot copy/paste between local and remote session"
+    - "Clipboard sharing disabled"
+    - "rdpclip.exe not running"
+  causes:
+    - "rdpclip.exe process crashed or not started"
+    - "Group Policy disabling clipboard redirection"
+    - "Corrupted RDP configuration"
+  diagnosis:
+    - "Task Manager: Check if rdpclip.exe is running"
+    - "Query session: qwinsta"
+    - "Check group policy: gpedit.msc"
+  resolution:
+    - "Restart rdpclip: taskkill /im rdpclip.exe && start rdpclip.exe"
+    - "Enable clipboard redirection in Group Policy"
+    - "Delete and recreate RDP connection"
+  commands:
+    - "tasklist | findstr rdpclip"
+    - "taskkill /im rdpclip.exe"
+    - "start rdpclip.exe"
+    - "qwinsta"
+  sources:
+    - {name: "Microsoft Support - RDP clipboard", url: "https://support.microsoft.com/en-us/windows/fix-problems-with-copying-and-pasting-in-remote-desktop-3aec9746-0b90-41e5-9328-2e2c0954b0ec"}
+    - {name: "rdpclip troubleshooting", url: "https://learn.microsoft.com/en-us/windows-server/remote/remote-desktop-services/clients/remote-desktop-services-faq"}
+  related: [win-rdp-cannot-connect, win-rdp-black-screen]
+
+- id: win-rdp-printer-redirection
+  title: "Printer redirection not working in RDP"
+  os: windows
+  category: rdp-remote
+  severity: moderate
+  keywords: [rdp, printer, redirection, printer, local]
+  symptoms:
+    - "Local printers not showing in Remote Desktop session"
+    - "Cannot print to local printer from remote session"
+    - "Printer redirection disabled"
+  causes:
+    - "Printer redirection disabled in RDP settings"
+    - "Group Policy disabling printer redirection"
+    - "Local printer drivers not compatible"
+  diagnosis:
+    - "Check RDP client settings: Local Resources -> Printers"
+    - "Query session: qwinsta"
+    - "Check group policy: Computer Configuration -> Policies -> Administrative Templates -> Windows Components -> Remote Desktop Services"
+  resolution:
+    - "Enable printer redirection in RDP client: Local Resources -> Printers -> Check 'Printers'"
+    - "Enable via Group Policy: Allow printer redirection"
+    - "Install printer driver on remote machine matching local printer"
+  commands:
+    - "mstsc /admin /v:<target>"  # Then check Local Resources
+    - "qwinsta"
+    - "printui /s /t2"  # List printer drivers
+  sources:
+    - {name: "Microsoft Docs - RDP printer redirection", url: "https://learn.microsoft.com/en-us/windows-server/remote/remote-desktop-services/clients/remote-desktop-print"}
+    - {name: "Enable printer redirection", url: "https://learn.microsoft.com/en-us/windows-server/remote/remote-desktop-services/rds-hosted-desktop-printer-redirection-overview"}
+  related: []

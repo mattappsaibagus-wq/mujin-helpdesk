@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Mujin HelpDesk{% endblock %}</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+
+    <!-- External resources -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Static assets -->
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="/static/app.js" defer></script>
+
+    <!-- Meta tags -->
+    <meta name="description" content="IT troubleshooting knowledge base for Debian 13, Windows 11, and macOS">
+    <meta name="author" content="MUJIN">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <a href="/">
+                    <span class="brand-icon">🔧</span>
+                    <span>Mujin HelpDesk</span>
+                </a>
+            </div>
+            <div class="nav-links">
+                <a href="/">Home</a>
+                <a href="/ticket">Ticket Generator</a>
+                <a href="#" onclick="alert('Documentation will be available soon')">Documentation</a>
+                <a href="#" onclick="alert('Help will be available soon')">Help</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main content -->
+    <main>
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>🚧 MUJIN HelpDesk</h3>
+                    <p>IT troubleshooting knowledge base for Debian 13, Windows 11, and macOS</p>
+                    <p>Built with ❤️ by MUJIN IT Support</p>
+                </div>
+                <div class="footer-section">
+                    <h3>Quick Links</h3>
+                    <ul>
+                        <li><a href="/">Home</a></li>
+                        <li><a href="/ticket">Ticket Generator</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h3>Support</h3>
+                    <p>Need help? Contact your MUJIN IT Support team</p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 MUJIN Corporation. All rights reserved.</p>
+                <p>Made with care for IT support engineers</p>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>
