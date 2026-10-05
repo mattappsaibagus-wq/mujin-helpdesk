@@ -1,0 +1,19 @@
+[Unit]
+Description=ITSS PRO TOOL web console
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=senseimat
+Group=senseimat
+WorkingDirectory=/home/senseimat/mujin-helpdesk
+EnvironmentFile=/home/senseimat/mujin-helpdesk/.env
+ExecStart=/usr/bin/python3 -m gunicorn -c gunicorn.conf.py
+Restart=on-failure
+RestartSec=3
+# FreshService / diagnostic work can be slow; give workers room.
+TimeoutStopSec=20
+
+[Install]
+WantedBy=multi-user.target
