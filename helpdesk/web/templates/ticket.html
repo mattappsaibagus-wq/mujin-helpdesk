@@ -1,216 +1,32 @@
 {% extends "base.html" %}
-{% block title %}Ticket Template Generator - Mujin HelpDesk{% endblock %}
-
+{% block title %}New ticket — ITSS PRO TOOL{% endblock %}
 {% block content %}
-<div class="container">
-    <div class="header">
-        <h1>📋 FreshService Ticket Template Generator</h1>
-        <p>Generate a ready-to-paste ticket template for the affected system</p>
+<div class="crumbs"><a href="/">Console</a> / New ticket</div>
+<section class="hero" style="padding-top:0.4rem">
+    <div class="eyebrow">FreshService</div>
+    <h1>Build a ticket</h1>
+    <p class="lede">Pick the system and describe the symptom. ITSS matches the closest article and drafts a ticket block you can paste straight into FreshService.</p>
+</section>
+
+<form class="form-card" id="ticketForm">
+    <div class="field">
+        <label for="os">Operating system</label>
+        <select id="os" name="os">
+            {% for name, label in os_labels.items() %}
+            <option value="{{ name }}">{{ label }}</option>
+            {% endfor %}
+        </select>
     </div>
-
-    <div class="ticket-generator">
-        <div class="ticket-section">
-            <h2>🎯 Select Issue Details</h2>
-            <form id="ticketForm" onsubmit="generateTicket(event)">
-                <div class="form-group">
-                    <label for="osSelect">Operating System</label>
-                    <select id="osSelect" name="os" required>
-                        <option value="">Choose OS...</option>
-                        <option value="debian">🐧 Debian 13 (Developer)</option>
-                        <option value="windows">🪟 Windows 11 (Support)</option>
-                        <option value="mac">🍎 macOS (General)</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label for="symptomInput">Symptom/Issue Description</label>
-                    <textarea id="symptomInput" name="symptom" placeholder="Describe what you're seeing or experiencing...
-
-Examples:
-• 'apt-get update fails with 404 errors'
-• 'Cannot print to network printer'
-• 'RDP connection fails with 'Unable to connect''
-• 'Cannot login to Windows'
-• 'Keyboard shortcuts not working in macOS terminal'" required></textarea>
-                </div>
-
-                <div class="form-group">
-                    <label for="searchSuggestions">💡 Quick suggestions</label>
-                    <div class="suggestions-container">
-                        <button type="button" class="suggestion-btn" onclick="suggestSymptom('apt')">apt errors</button>
-                        <button type="button" class="suggestion-btn" onclick="suggestSymptom('RDP')">RDP connection</button>
-                        <button type="button" class="suggestion-btn" onclick="suggestSymptom('printer')">printer issue</button>
-                        <button type="button" class="suggestion-btn" onclick="suggestSymptom('login')">login problem</button>
-                        <button type="button" class="suggestion-btn" onclick="suggestSymptom('disk')">disk space</button>
-                        <button type="button" class="suggestion-btn" onclick="suggestSymptom('wifi')">Wi-Fi connectivity</button>
-                        <button type="button" class="suggestion-btn" onclick="suggestSymptom('keyboard')">keyboard shortcuts</button>
-                        <button type="button" class="suggestion-btn" onclick="suggestSymptom('performance')">performance</button>
-                        <button type="button" class="suggestion-btn" onclick="suggestSymptom('email')">email</button>
-                        <button type="button" class="suggestion-btn" onclick="suggestSymptom('update')">update</button>
-                    </div>
-                </div>
-
-                <button type="submit" class="btn btn-primary btn-lg">Generate Ticket Template</button>
-            </form>
-        </div>
-
-        <div id="ticketResult" class="ticket-section hidden">
-            <h2>📄 Your FreshService Ticket Template</h2>
-            <div class="ticket-output">
-                <pre id="ticketText"></pre>
-            </div>
-            <div class="ticket-actions">
-                <button onclick="copyTicket()" class="btn btn-success">Copy to Clipboard</button>
-                <button onclick="downloadTicket()" class="btn btn-secondary">Download as Text</button>
-                <button onclick="hideTicket()" class="btn btn-outline">Back to Form</button>
-            </div>
-        </div>
+    <div class="field">
+        <label for="symptom">Symptom reported by the user</label>
+        <textarea id="symptom" name="symptom" rows="3" required placeholder="e.g. apt says it cannot get the dpkg lock"></textarea>
     </div>
-
-    <div class="info-section">
-        <h3>📖 How to use</h3>
-        <ol>
-            <li>Select the operating system and describe the issue</li>
-            <li>Choose from suggested symptoms or type your own</li>
-            <li>The tool will find the most likely cause and generate a complete ticket template</li>
-            <li>Copy the template into your FreshService ticket - everything is already formatted</li>
-        </ol>
+    <button class="btn" type="submit">Generate ticket</button>
+    <pre class="ticket-output" id="ticketOutput"></pre>
+    <div class="ticket-actions" id="ticketActions" hidden>
+        <button class="btn ghost" type="button" id="copyTicket">Copy</button>
+        <button class="btn" type="button" id="saveTicket">Save ticket</button>
+        <span id="saveStatus" class="mono" style="color:var(--text-dim);align-self:center"></span>
     </div>
-</div>
-
-<script>
-function suggestSymptom(text) {
-    document.getElementById('symptomInput').value = text;
-}
-
-async function generateTicket(event) {
-    event.preventDefault();
-
-    const formData = new FormData(event.target);
-    const data = {
-        os: formData.get('os'),
-        symptom: formData.get('symptom')
-    };
-
-    try {
-        const response = await fetch('/ticket', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(data)
-        });
-
-        const result = await response.json();
-
-        if (result.success) {
-            document.getElementById('ticketResult').classList.remove('hidden');
-            document.getElementById('ticketText').textContent = result.ticket_text;
-            window.scrollTo({ top: document.getElementById('ticketResult').offsetTop, behavior: 'smooth' });
-        } else {
-            alert('Error generating ticket template');
-        }
-    } catch (error) {
-        console.error('Error:', error);
-        alert('Error generating ticket template');
-    }
-}
-
-function copyTicket() {
-    const ticketText = document.getElementById('ticketText').textContent;
-
-    if (navigator.clipboard) {
-        navigator.clipboard.writeText(ticketText).then(() => {
-            showNotification('✅ Ticket template copied to clipboard!', 'success');
-        }).catch(err => {
-            console.error('Failed to copy:', err);
-            fallbackCopy(ticketText);
-        });
-    } else {
-        fallbackCopy(ticketText);
-    }
-}
-
-function fallbackCopy(text) {
-    const textArea = document.createElement('textarea');
-    textArea.value = text;
-    document.body.appendChild(textArea);
-    textArea.focus();
-    textArea.select();
-
-    try {
-        const successful = document.execCommand('copy');
-        if (successful) {
-            showNotification('✅ Ticket template copied!', 'success');
-        } else {
-            showNotification('❌ Copy failed - please copy manually', 'error');
-        }
-    } catch (err) {
-        showNotification('❌ Copy failed - please copy manually', 'error');
-    }
-
-    document.body.removeChild(textArea);
-}
-
-function downloadTicket() {
-    const ticketText = document.getElementById('ticketText').textContent;
-    const blob = new Blob([ticketText], { type: 'text/plain' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `mujin-helpdesk-ticket-${new Date().toISOString().split('T')[0]}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
-}
-
-function hideTicket() {
-    document.getElementById('ticketResult').classList.add('hidden');
-    document.getElementById('symptomInput').focus();
-}
-
-function showNotification(message, type) {
-    // Create and show a temporary notification
-    const notification = document.createElement('div');
-    notification.className = `notification ${type}`;
-    notification.textContent = message;
-    notification.style.cssText = `
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        padding: 12px 24px;
-        border-radius: 6px;
-        color: white;
-        font-weight: 500;
-        z-index: 1000;
-        background: ${type === 'success' ? '#28a745' : '#dc3545'};
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        animation: slideIn 0.3s ease;
-    `;
-
-    document.body.appendChild(notification);
-
-    setTimeout(() => {
-        notification.style.animation = 'slideOut 0.3s ease';
-        setTimeout(() => {
-            document.body.removeChild(notification);
-        }, 300);
-    }, 3000);
-}
-
-// Add CSS animations
-const style = document.createElement('style');
-style.textContent = `
-@keyframes slideIn {
-    from { transform: translateX(100%); opacity: 0; }
-    to { transform: translateX(0); opacity: 1; }
-}
-@keyframes slideOut {
-    from { transform: translateX(0); opacity: 1; }
-    to { transform: translateX(100%); opacity: 0; }
-}
-`;
-document.head.appendChild(style);
-</script>
+</form>
 {% endblock %}

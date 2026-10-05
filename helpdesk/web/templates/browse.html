@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}{{ os_labels[os_name] }} — ITSS PRO TOOL{% endblock %}
+{% block content %}
+<div class="crumbs"><a href="/">Console</a> / {{ os_labels[os_name] }}</div>
+<section class="hero" style="padding-top:0.4rem">
+    <div class="eyebrow">{{ os_labels[os_name] }}</div>
+    <h1>{{ total }} articles</h1>
+</section>
+
+{% for category, articles in grouped.items() %}
+<section class="section">
+    <h3>{{ category }}</h3>
+    <div class="ticket-list">
+        {% for article in articles %}
+        <a class="ticket-item" href="/article/{{ article.id }}" style="text-decoration:none;color:inherit">
+            <div>
+                <h3>{{ article.title }}</h3>
+                <div class="when">{{ article.symptoms[0] if article.symptoms else '' }}</div>
+            </div>
+            <span class="pill {{ article.severity }}">{{ article.severity }}</span>
+        </a>
+        {% endfor %}
+    </div>
+</section>
+{% endfor %}
+{% endblock %}

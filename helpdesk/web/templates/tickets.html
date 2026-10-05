@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Saved tickets — ITSS PRO TOOL{% endblock %}
+{% block content %}
+<div class="crumbs"><a href="/">Console</a> / Saved tickets</div>
+<section class="hero" style="padding-top:0.4rem">
+    <div class="eyebrow">Your drafts</div>
+    <h1>Saved tickets</h1>
+</section>
+
+{% if not tickets %}
+<p class="empty">No tickets saved yet. <a href="/ticket">Generate one</a>.</p>
+{% endif %}
+
+<div class="ticket-list" id="ticketList">
+    {% for ticket in tickets %}
+    <article class="ticket-item" data-id="{{ ticket.id }}">
+        <div style="flex:1">
+            <h3>{{ ticket.title }}</h3>
+            <div class="when">{{ os_labels.get(ticket.os, ticket.os) }} · {{ ticket.symptom }}</div>
+            <pre class="ticket-body" id="ticket-{{ ticket.id }}">{{ ticket.ticket_text }}</pre>
+            <div class="ticket-actions">
+                <button class="btn ghost small" type="button" data-copy-target="{{ ticket.id }}">Copy</button>
+                <button class="btn danger small" type="button" data-delete="{{ ticket.id }}">Delete</button>
+            </div>
+        </div>
+    </article>
+    {% endfor %}
+</div>
+{% endblock %}

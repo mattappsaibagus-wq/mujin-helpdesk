@@ -1,151 +1,77 @@
 {% extends "base.html" %}
-{% block title %}{{ article.title }} - Mujin HelpDesk{% endblock %}
-
+{% block title %}{{ article.title }} — ITSS PRO TOOL{% endblock %}
 {% block content %}
-<div class="container">
-    <div class="article-header">
-        <div class="article-meta">
-            <span class="badge os-{{ article.os }}">{{ article.os|title }}</span>
-            <span class="badge category-{{ article.category }}">{{ article.category|title }}</span>
-            <span class="badge severity-{{ article.severity }}">{{ article.severity|title }}</span>
-        </div>
-        <h1>{{ article.title }}</h1>
-    </div>
-
-    <div class="article-content">
-        {% if article.keywords %}
-        <div class="article-keywords">
-            <strong>Keywords:</strong> {{ article.keywords|join(', ') }}
-        </div>
-        {% endif %}
-
-        <section class="article-section">
-            <h2>Symptoms</h2>
-            <ul class="article-list">
-                {% for symptom in article.symptoms %}
-                <li>{{ symptom }}</li>
-                {% endfor %}
-            </ul>
-        </section>
-
-        {% if article.causes %}
-        <section class="article-section">
-            <h2>Possible Causes</h2>
-            <ul class="article-list">
-                {% for cause in article.causes %}
-                <li>{{ cause }}</li>
-                {% endfor %}
-            </ul>
-        </section>
-        {% endif %}
-
-        {% if article.diagnosis %}
-        <section class="article-section">
-            <h2>Diagnostic Steps</h2>
-            <ol class="article-list">
-                {% for step in article.diagnosis %}
-                <li>{{ step }}</li>
-                {% endfor %}
-            </ol>
-        </section>
-        {% endif %}
-
-        <section class="article-section">
-            <h2>Resolution</h2>
-            <ol class="article-list">
-                {% for step in article.resolution %}
-                <li>{{ step }}</li>
-                {% endfor %}
-            </ol>
-        </section>
-
-        {% if article.commands %}
-        <section class="article-section">
-            <h2>Commands to Run</h2>
-            <div class="commands-block">
-                {% for cmd in article.commands %}
-                <div class="command-line">
-                    <span class="command-prompt">$</span>
-                    <span class="command-text">{{ cmd }}</span>
-                    <button class="copy-btn" onclick="copyToClipboard(this, '{{ cmd|e|replace(\"'\", \"\\'\") }}')">Copy</button>
-                </div>
-                {% endfor %}
-                <p class="commands-note">Copy and paste these commands into the affected machine's terminal/command prompt</p>
-            </div>
-        </section>
-        {% endif %}
-
-        {% if article.related %}
-        <section class="article-section">
-            <h2>See Also</h2>
-            <p class="related-links">
-                {% for related_id in article.related %}
-                <a href="/article/{{ related_id }}">{{ related_id }}</a>{% if not loop.last %}, {% endif %}
-                {% endfor %}
-            </p>
-        </section>
-        {% endif %}
-
-        {% if article.sources %}
-        <section class="article-section">
-            <h2>Reference Links</h2>
-            <ul class="article-list sources-list">
-                {% for source in article.sources %}
-                <li>
-                    <a href="{{ source.url }}" target="_blank" rel="noopener">{{ source.name }}</a>
-                </li>
-                {% endfor %}
-            </ul>
-        </section>
-        {% endif %}
-    </div>
-
-    <div class="article-actions">
-        <a href="javascript:history.back()" class="btn btn-secondary">← Back</a>
-        <a href="/ticket?os={{ article.os }}" class="btn btn-primary">Generate Ticket Template</a>
-        {% if article.id %}
-        <a href="/diagnostic/{{ article.id }}" class="btn btn-outline">Show Diagnostic</a>
-        {% endif %}
-    </div>
-
-    {% if related %}
-    <div class="related-articles">
-        <h3>Related Articles</h3>
-        <div class="related-grid">
-            {% for art in related %}
-            <div class="related-card">
-                <div class="related-severity {{ art.severity }}">
-                    {{ {'common': '●', 'moderate': '◑', 'severe': '✖'}[art.severity] }}
-                </div>
-                <div class="related-content">
-                    <h4><a href="/article/{{ art.id }}">{{ art.title }}</a></h4>
-                    <p class="related-meta">{{ art.os|title }} • {{ art.category }}</p>
-                    <p class="related-summary">{{ art.symptoms[0] if art.symptoms else '' }}</p>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-    {% endif %}
+<div class="crumbs">
+    <a href="/">Console</a> /
+    <a href="/browse/{{ article.os }}">{{ os_labels[article.os] }}</a> /
+    {{ article.category }}
 </div>
 
-<script>
-function copyToClipboard(button, text) {
-    navigator.clipboard.writeText(text).then(() => {
-        const originalText = button.textContent;
-        button.textContent = '✓ Copied!';
-        button.disabled = true;
-        setTimeout(() => {
-            button.textContent = originalText;
-            button.disabled = false;
-        }, 2000);
-    }).catch(err => {
-        console.error('Failed to copy: ', err);
-        button.textContent = '✗ Error';
-        setTimeout(() => {
-            button.textContent = 'Copy';
-        }, 2000);
-    });
-}
-</script>
+<header class="article-head {{ article.severity }}">
+    <div class="tag-row">
+        <span class="oschip {{ article.os }}">{{ os_labels[article.os] }}</span>
+        <span class="pill {{ article.severity }}">{{ article.severity }}</span>
+        <span class="mono" style="color:var(--text-faint);font-size:0.8rem">{{ article.id }}</span>
+    </div>
+    <h1>{{ article.title }}</h1>
+</header>
+
+<section class="section">
+    <h3>Symptoms</h3>
+    <ul class="steps">
+        {% for symptom in article.symptoms %}<li>{{ symptom }}</li>{% endfor %}
+    </ul>
+</section>
+
+{% if article.causes %}
+<section class="section">
+    <h3>Likely causes</h3>
+    <ul class="steps">
+        {% for cause in article.causes %}<li>{{ cause }}</li>{% endfor %}
+    </ul>
+</section>
+{% endif %}
+
+{% if article.diagnosis %}
+<section class="section">
+    <h3>Check this first</h3>
+    {% for step in article.diagnosis %}
+    <div class="cmd"><span>$ {{ step }}</span><button class="btn ghost small" type="button" data-copy="{{ step }}">Copy</button></div>
+    {% endfor %}
+</section>
+{% endif %}
+
+<section class="section">
+    <h3>Resolution</h3>
+    <ol class="steps">
+        {% for step in article.resolution %}<li>{{ step }}</li>{% endfor %}
+    </ol>
+</section>
+
+{% if article.commands %}
+<section class="section">
+    <h3>Commands to run on the affected machine</h3>
+    {% for cmd in article.commands %}
+    <div class="cmd"><span>$ {{ cmd }}</span><button class="btn ghost small" type="button" data-copy="{{ cmd }}">Copy</button></div>
+    {% endfor %}
+</section>
+{% endif %}
+
+{% if article.sources %}
+<section class="section">
+    <h3>Sources</h3>
+    {% for source in article.sources %}
+    <a class="source" href="{{ source.url }}" target="_blank" rel="noopener">{{ source.name }} — {{ source.url }}</a>
+    {% endfor %}
+</section>
+{% endif %}
+
+{% if related %}
+<section class="section">
+    <h3>Related</h3>
+    {% for item in related %}
+    <a class="article-row" href="/article/{{ item.id }}">{{ item.title }}</a>
+    {% endfor %}
+</section>
+{% endif %}
 {% endblock %}

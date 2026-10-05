@@ -1,288 +1,127 @@
-/**
- * Mujin HelpDesk - Frontend JavaScript
- * Handles client-side search, interactions, and UI enhancements
- */
+/* ITSS PRO TOOL — inline behaviour: search, copy, ticket generator, saved tickets. */
+(function () {
+  'use strict';
 
-class HelpDeskApp {
-    constructor() {
-        this.articles = [];
-        this.isLoaded = false;
-        this.debounceTimer = null;
-        this.init();
-    }
+  function qs(sel, root) { return (root || document).querySelector(sel); }
+  function qsa(sel, root) { return Array.from((root || document).querySelectorAll(sel)); }
 
-    async init() {
-        await this.loadArticles();
-        this.setupEventListeners();
-    }
-
-    async loadArticles() {
-        try {
-            const response = await fetch('/api/articles');
-            const data = await response.json();
-            this.articles = data.articles || [];
-            this.isLoaded = true;
-            this.buildSearchIndex();
-            this.updateStats(data);
-        } catch (error) {
-            console.error('Failed to load articles:', error);
+  /* --- Live search on the console --- */
+  var form = qs('#searchForm');
+  if (form) {
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var q = qs('#searchInput').value.trim();
+      var osSel = qs('#searchOs');
+      var os = osSel ? osSel.value : '';
+      if (!q) return;
+      var url = '/search?q=' + encodeURIComponent(q) + (os ? '&os=' + os : '');
+      fetch(url).then(function (r) { return r.json(); }).then(function (data) {
+        var box = qs('#searchResults');
+        if (!data.results.length) {
+          box.innerHTML = '<p class="empty">No articles matched "' + q + '".</p>';
+          return;
         }
+        box.innerHTML = data.results.map(function (a) {
+          return '<a class="result" href="/article/' + a.id + '">' +
+            '<span class="oschip ' + a.os + '">' + a.os + '</span>' +
+            '<div><h4>' + a.title + '</h4><p>' + a.category +
+            (a.symptom ? ' — ' + a.symptom : '') + '</p></div>' +
+            '<span class="pill ' + a.severity + '">' + a.severity + '</span>' +
+            '</a>';
+        }).join('');
+      }).catch(function () {
+        qs('#searchResults').innerHTML = '<p class="empty">Search error — try again.</p>';
+      });
+    });
+  }
+
+  /* --- Copy buttons on article pages --- */
+  document.addEventListener('click', function (e) {
+    var copyBtn = e.target.closest && e.target.closest('[data-copy]');
+    if (copyBtn) return copyToClipboard(copyBtn.getAttribute('data-copy'), copyBtn);
+
+    var copyTarget = e.target.closest && e.target.closest('[data-copy-target]');
+    if (copyTarget) {
+      var el = document.getElementById('ticket-' + copyTarget.getAttribute('data-copy-target'));
+      return copyToClipboard((el && el.textContent) || '', copyTarget);
     }
 
-    buildSearchIndex() {
-        // Create a simple inverted index for fast client-side search
-        this.searchIndex = {};
-        this.articles.forEach((article, idx) => {
-            const text = article.search_text || '';
-            const words = text.toLowerCase().split(/\s+/);
-            words.forEach(word => {
-                if (word.length > 2) {
-                    if (!this.searchIndex[word]) {
-                        this.searchIndex[word] = [];
-                    }
-                    if (!this.searchIndex[word].includes(idx)) {
-                        this.searchIndex[word].push(idx);
-                    }
-                }
-            });
+    var del = e.target.closest && e.target.closest('[data-delete]');
+    if (del) return deleteTicket(del.getAttribute('data-delete'), del);
+  });
+
+  function copyToClipboard(text, btn) {
+    var original = btn.textContent;
+    var fallback = function () {
+      var ta = document.createElement('textarea');
+      ta.value = text; document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); } finally { document.body.removeChild(ta); }
+      flash(btn, original);
+    };
+    if (navigator.clipboard && window.isSecureContext !== false) {
+      navigator.clipboard.writeText(text).then(function () { flash(btn, original); }).catch(fallback);
+    } else {
+      fallback();
+    }
+  }
+
+  function flash(btn, original) {
+    var old = btn.textContent;
+    btn.textContent = 'Copied ✓';
+    setTimeout(function () { btn.textContent = old; }, 1400);
+  }
+
+  function deleteTicket(id, btn) {
+    if (!confirm('Delete this saved ticket?')) return;
+    fetch('/tickets/' + id, { method: 'DELETE' })
+      .then(function (r) {
+        if (r.ok) {
+          var item = btn.closest('[data-id]');
+          if (item) item.remove();
+        }
+      })
+      .catch(function () { /* leave the row; user can retry */ });
+  }
+
+  /* --- Ticket generator --- */
+  var ticketForm = qs('#ticketForm');
+  if (ticketForm) {
+    ticketForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var body = new FormData(ticketForm);
+      // Only need os + symptom for the server template.
+      var formData = new URLSearchParams();
+      formData.set('os', body.get('os'));
+      formData.set('symptom', body.get('symptom'));
+      fetch('/ticket', { method: 'POST', body: formData })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (!data.success) return;
+          window._lastTicket = data;
+          var out = qs('#ticketOutput');
+          out.textContent = data.ticket_text;
+          out.style.display = 'block';
+          qs('#ticketActions').hidden = false;
+          qs('#saveStatus').textContent = '';
         });
-    }
+    });
 
-    updateStats(data) {
-        // Update the stat numbers if they exist on the page
-        if (data.os_counts) {
-            Object.entries(data.os_counts).forEach(([os, count]) => {
-                const element = document.getElementById(`stat-${os}`);
-                if (element) {
-                    element.textContent = count;
-                }
-            });
-        }
-    }
+    qs('#copyTicket').addEventListener('click', function (e) {
+      copyToClipboard(window._lastTicket ? window._lastTicket.ticket_text : '', e.target);
+    });
 
-    setupEventListeners() {
-        // Global search input
-        const searchInput = document.getElementById('searchInput');
-        if (searchInput) {
-            searchInput.addEventListener('input', (e) => this.handleSearch(e));
-            searchInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    this.performSearch(e.target.value, document.getElementById('searchOs')?.value || 'all');
-                }
-            });
-        }
-
-        // Search OS filter
-        const searchOs = document.getElementById('searchOs');
-        if (searchOs) {
-            searchOs.addEventListener('change', (e) => {
-                this.performSearch(searchInput?.value || '', e.target.value);
-            });
-        }
-
-        // Keyboard shortcut: / to focus search
-        document.addEventListener('keydown', (e) => {
-            if (e.key === '/' && document.activeElement.tagName !== 'INPUT' &&
-                document.activeElement.tagName !== 'TEXTAREA' &&
-                document.activeElement.tagName !== 'SELECT') {
-                e.preventDefault();
-                searchInput?.focus();
-            }
+    qs('#saveTicket').addEventListener('click', function () {
+      if (!window._lastTicket) return;
+      fetch('/tickets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(window._lastTicket)
+      })
+        .then(function (r) { return r.json(); })
+        .then(function () {
+          qs('#saveStatus').textContent = 'Saved ✓';
         });
-    }
-
-    handleSearch(event) {
-        const query = event.target.value.trim();
-        const osFilter = document.getElementById('searchOs')?.value || 'all';
-
-        // Debounce
-        clearTimeout(this.debounceTimer);
-        this.debounceTimer = setTimeout(() => {
-            this.performSearch(query, osFilter);
-        }, 200);
-    }
-
-    async performSearch(query, osFilter) {
-        const resultsContainer = document.getElementById('searchResults');
-        if (!resultsContainer) return;
-
-        if (!query) {
-            resultsContainer.classList.add('hidden');
-            return;
-        }
-
-        try {
-            // Try server-side search first
-            const params = new URLSearchParams({ q: query });
-            if (osFilter !== 'all') params.append('os', osFilter);
-
-            const response = await fetch(`/api/search?${params}`);
-            const data = await response.json();
-
-            this.renderSearchResults(data.results, resultsContainer);
-            resultsContainer.classList.remove('hidden');
-        } catch (error) {
-            console.error('Search error:', error);
-            // Fallback to client-side search
-            this.clientSideSearch(query, osFilter, resultsContainer);
-            resultsContainer.classList.remove('hidden');
-        }
-    }
-
-    clientSideSearch(query, osFilter, container) {
-        const lowerQuery = query.toLowerCase();
-        const results = [];
-
-        this.articles.forEach((article, idx) => {
-            if (osFilter !== 'all' && article.os !== osFilter) return;
-
-            // Check in search index
-            const words = lowerQuery.split(/\s+/);
-            let score = 0;
-
-            words.forEach(word => {
-                if (word.length > 2 && this.searchIndex[word]?.includes(idx)) {
-                    score += 1;
-                }
-            });
-
-            // Bonus for exact matches in title
-            if (article.title.toLowerCase().includes(lowerQuery)) {
-                score += 5;
-            }
-
-            if (score > 0) {
-                results.push({ ...article, score });
-            }
-        });
-
-        // Sort by score
-        results.sort((a, b) => b.score - a.score);
-
-        this.renderSearchResults(results.slice(0, 20), container);
-    }
-
-    renderSearchResults(results, container) {
-        if (!results || results.length === 0) {
-            container.innerHTML = '<div class="empty-state">No articles found for your search</div>';
-            return;
-        }
-
-        let html = '<div class="search-result-list">';
-        results.forEach(article => {
-            const sev = article.severity || 'common';
-            html += `
-                <div class="search-result-item" onclick="window.location.href='/article/${article.id}'">
-                    <div class="search-result-header">
-                        <span class="search-result-os ${article.os}">${article.os.toUpperCase()}</span>
-                        <span class="search-result-severity ${sev}">${{ 'common': '●', 'moderate': '◑', 'severe': '✖' }[sev]}</span>
-                    </div>
-                    <h4>${this.escapeHtml(article.title)}</h4>
-                    <p>Category: ${this.escapeHtml(article.category)}</p>
-                </div>
-            `;
-        });
-        html += '</div>';
-        container.innerHTML = html;
-    }
-
-    escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
-
-    // Utility methods for other parts of the app
-    static async copyToClipboard(text) {
-        if (navigator.clipboard) {
-            try {
-                await navigator.clipboard.writeText(text);
-                return true;
-            } catch (err) {
-                console.error('Clipboard API failed:', err);
-            }
-        }
-
-        // Fallback
-        const textArea = document.createElement('textarea');
-        textArea.value = text;
-        document.body.appendChild(textArea);
-        textArea.focus();
-        textArea.select();
-
-        try {
-            const successful = document.execCommand('copy');
-            document.body.removeChild(textArea);
-            return successful;
-        } catch (err) {
-            console.error('Fallback copy failed:', err);
-            document.body.removeChild(textArea);
-            return false;
-        }
-    }
-
-    static showNotification(message, type = 'info') {
-        const notification = document.createElement('div');
-        notification.className = `notification ${type}`;
-        notification.textContent = message;
-        notification.style.cssText = `
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            padding: 12px 24px;
-            border-radius: 6px;
-            color: white;
-            font-weight: 500;
-            z-index: 1000;
-            background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#2563eb'};
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            animation: slideIn 0.3s ease;
-        `;
-
-        document.body.appendChild(notification);
-
-        setTimeout(() => {
-            notification.style.animation = 'slideOut 0.3s ease';
-            setTimeout(() => {
-                if (document.body.contains(notification)) {
-                    document.body.removeChild(notification);
-                }
-            }, 300);
-        }, 3000);
-    }
-
-    static async fetchArticle(id) {
-        try {
-            const response = await fetch(`/api/articles/${id}`);
-            return await response.json();
-        } catch (error) {
-            console.error('Failed to fetch article:', error);
-            return null;
-        }
-    }
-}
-
-// Initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
-    window.helpDesk = new HelpDeskApp();
-});
-
-// Add animation styles
-const style = document.createElement('style');
-style.textContent = `
-@keyframes slideIn {
-    from { transform: translateX(100%); opacity: 0; }
-    to { transform: translateX(0); opacity: 1; }
-}
-@keyframes slideOut {
-    from { transform: translateX(0); opacity: 1; }
-    to { transform: translateX(100%); opacity: 0; }
-}
-`;
-document.head.appendChild(style);
-
-// Export for module usage
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = HelpDeskApp;
-}
+    });
+  }
+})();

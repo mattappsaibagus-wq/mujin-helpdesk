@@ -1,185 +1,99 @@
-# MUJIN HelpDesk — IT Troubleshooting Tool
+# ITSS PRO TOOL
 
-IT troubleshooting knowledge base for **Debian 13**, **Windows 11**, and **macOS**.
+IT troubleshooting console and knowledge base for **Debian 13**, **Windows 11**, and **macOS**.
 
-## Overview
+Built for IT support engineers working FreshService tickets. Search a bundled
+offline knowledge base of troubleshooting articles, pull the diagnosis and the
+commands to run on the affected machine, and generate a FreshService ticket
+block you can paste straight in — all from a single tool with a **CLI** and a
+password-protected **web console**.
 
-MUJIN HelpDesk is a comprehensive IT support tool designed to help IT support engineers quickly diagnose and resolve technical issues across different operating systems. The tool provides:
+## Highlights
 
-- **Fast search** across all troubleshooting articles
-- **Copy-paste diagnostic commands** for system investigation  
-- **FreshService-ready ticket templates** for efficient reporting
-- **Both CLI and web interfaces** for different support workflows
+- 🔍 **Fast search** across 50+ articles by symptom, title, keyword, or OS
+- 🖥️ **Guided diagnostics** — print-only commands to run on the affected machine (never auto-executed)
+- 📋 **FreshService ticket templates** — draft a ticket and **save** it to come back to
+- 🌐 **Web console** — modern UI, OS panels, live search, gated by a shared password
+- ⚙️ **CLI** for terminal-first support work
 
-## Key Features
+## Web console
 
-### 🔍 Fast Search
-- Search by symptom, title, keywords, or cause
-- Filter by operating system (Debian/Windows/macOS)
-- View full articles with symptoms, causes, diagnosis steps, and resolution
-
-### 🖥️ Copy-Paste Diagnostics
-- Pre-written commands for system investigation
-- Safe to run (read-only or targeted fixes)
-- Formatted for FreshService ticket pasting
-
-### 📋 FreshService Integration
-- Generate ticket templates with all necessary information
-- Include environment details, collected diagnostics, and next steps
-- Ready to paste into FreshService tickets
-
-### 🌐 Web Dashboard
-- Browse articles by OS and category
-- Live search functionality
-- Ticket template generator
-- Responsive design for desktop and mobile
-
-## Usage
-
-### CLI Commands
-
-```bash
-# Show help
-mhd
-
-# List articles by OS
-mhd list debian
-mhd list windows
-mhd list mac
-
-# Search for articles
-mhd search "apt lock"
-mhd search "RDP connection" --os windows
-
-# Show full article
-mhd show deb-apt-lock
-
-# Show articles in a specific category
-mhd cat debian packages
-
-# Generate diagnostic commands
-mhd diag "apt lock"
-
-# Generate FreshService ticket template
-mhd ticket debian --symptom "apt update failed"
-
-# Show source links
-mhd sources deb-apt-lock
-
-# Show configuration
-mhd config
-
-# Start web dashboard
-mhd web
-```
-
-### Web Dashboard
-
-Start the web dashboard:
+Run it, then open http://localhost:8000 and sign in with the shared access code.
 
 ```bash
 python mhd.py web
+# or
+python -m helpdesk.web.run
 ```
 
-Open your browser to http://localhost:5000
+### Configuration (environment variables)
 
-## Knowledge Base Structure
+| Variable | Purpose | Default |
+|----------|---------|---------|
+| `ITSS_PASS` | Shared access code for the web console | `itss-pro-tool` |
+| `SECRET_KEY` | Signs session cookies (use a long random value) | dev key |
+| `PORT` | HTTP port | `8000` |
+| `DEBUG` | `1`/`true` enables Flask debug mode | off |
 
-The tool includes **50+ articles** organized by operating system and category:
+See `.env.example`. Always set `ITSS_PASS` and `SECRET_KEY` before deploying.
 
-### Debian 13 (30 articles)
-- **Packages**: apt/dpkg issues, GPG errors, held packages
-- **Systemd**: service management, boot issues, networking
-- **Permissions**: sudo, user groups, file permissions
-- **Networking**: DNS, proxy, SSH, static IP
-- **Storage**: disk full, LVM, fstab mounts
+### What's behind the login
 
-### Windows 11 (20 articles)
-- **RDP/Remote**: connection issues, black screen, printer redirection
-- **Network/Wi-Fi**: no internet, adapter issues, IP conflicts, VPN
-- **Printers/Peripherals**: driver issues, spooler problems, network printers
-- **Software**: winget/MS store install, legacy MSI, AV blocking
-- **Accounts/Login**: locked out, admin access, domain join
+- **Console** — search box, per-OS stat strip, and Debian / Windows / macOS panels.
+- **Browse** — every article for one OS, grouped by category.
+- **Article** — symptoms, causes, diagnosis, resolution, copy-paste commands, sources, related.
+- **New ticket** — pick OS + symptom → generates a FreshService block → **Save** it.
+- **Saved tickets** — your drafts, with copy and delete.
 
-### macOS (0 articles)
-*(Planned for future releases)*
+## CLI
 
-Each article includes:
-- **Symptoms** users report
-- **Causes** analysis
-- **Diagnosis** steps to investigate
-- **Resolution** steps to fix
-- **Commands** to copy-paste
-- **Sources** for authoritative documentation
+```bash
+python mhd.py                    # overview + help
+python mhd.py list <os>          # articles for a system (debian/windows/mac)
+python mhd.py search "apt lock"  # fuzzy search (add --os windows to filter)
+python mhd.py show deb-apt-lock  # full article
+python mhd.py cat <os> <cat>     # articles in one category
+python mhd.py diag "apt lock"    # print-only diagnostic commands
+python mhd.py ticket <os>        # FreshService ticket template
+python mhd.py sources <id>       # reference links
+python mhd.py web                # start the web console
+```
+
+## Knowledge base
+
+Structured YAML articles under `knowledge/<os>/<category>.yaml`. Each article
+carries symptoms, causes, diagnosis steps, resolution, runnable commands, and
+authoritative source links — the same data powers both the CLI and the web app.
+
+Add a new article by dropping a YAML entry into the right OS/category file; it
+appears in search, browse, and the ticket generator with no code changes.
+
+Article schema:
+
+```yaml
+- id: deb-apt-lock
+  title: "E: Unable to acquire the dpkg frontend lock"
+  os: debian                 # debian | windows | mac
+  category: packages
+  severity: common           # common | moderate | severe
+  keywords: [apt, dpkg, lock, install]
+  symptoms: ["apt says it cannot get the lock"]
+  causes: ["another apt is running"], ["previous command interrupted"]
+  diagnosis: ["pgrep -a apt"], ["ls -l /var/lib/dpkg/lock-frontend"]
+  resolution: ["sudo dpkg --configure -a"]
+  commands: ["pgrep -a apt", "sudo apt-get update"]
+  sources:
+    - {name: "Debian Wiki", url: "https://wiki.debian.org/DpkgLock"}
+  related: [deb-apt-install-fail]
+```
 
 ## Development
 
-### Requirements
-
 ```bash
-pip install -r requirements.txt
-```
-
-### Testing
-
-The tool includes basic testing infrastructure:
-
-```bash
-# Run basic tests
-pytest tests/
-```
-
-### Adding New Articles
-
-Add new articles by creating YAML files in the `knowledge/` directory:
-
-```
-knowledge/
-└── <os>/
-    └── <category>.yaml
-```
-
-Each article should follow this schema:
-
-```yaml
-- id: <unique-id>
-  title: "Descriptive title"
-  os: debian|windows|mac
-  category: <category-name>
-  severity: common|moderate|severe
-  keywords: [keyword1, keyword2]
-  symptoms:
-    - "Symptom 1"
-    - "Symptom 2"
-  causes:
-    - "Cause 1"
-    - "Cause 2"
-  diagnosis:
-    - "Step 1"
-    - "Step 2"
-  resolution:
-    - "Fix 1"
-    - "Fix 2"
-  commands:
-    - "Command 1"
-    - "Command 2"
-  sources:
-    - {name: "Source name", url: "https://..."}
-  related: [other-article-id]
+pip install -r requirements.txt   # Flask + PyYAML
+pytest tests/                     # run the test suite
 ```
 
 ## License
 
-This tool is provided as-is for internal MUJIN IT support use. Future enhancements and community contributions are welcome.
-
-## Support
-
-For issues or enhancements, contact MUJIN IT Support team.
-
-## Quick Start
-
-1. **Install dependencies:** `pip install -r requirements.txt`
-2. **Test the tool:** `python mhd.py list debian` (or any command from help)
-3. **Start web dashboard:** `python mhd.py web` (optional, for browsing)
-
-The tool is ready for immediate use in MUJIN IT support workflows!
+Provided as-is for internal IT support use.

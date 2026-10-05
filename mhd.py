@@ -83,11 +83,14 @@ def main():
 
     # Route commands
     if args.command == 'web':
-        # Import and start web dashboard
+        # Import and start ITSS PRO TOOL web app
+        import os as _os
         from helpdesk.web.app import app
-        print("Starting Mujin HelpDesk web dashboard on http://localhost:5000")
+        port = int(_os.environ.get('PORT', '8000'))
+        debug = _os.environ.get('DEBUG', '').lower() in ('1', 'true', 'yes')
+        print(f"ITSS PRO TOOL web app on http://localhost:{port} (login required)")
         print("Press Ctrl+C to stop")
-        app.run(host='0.0.0.0', port=5000, debug=False)
+        app.run(host='0.0.0.0', port=port, debug=debug)
 
     elif args.command == 'list':
         articles = kb.get_articles(os_filter=args.os if args.os != 'all' else None,

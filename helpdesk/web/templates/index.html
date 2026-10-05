@@ -1,247 +1,64 @@
 {% extends "base.html" %}
-{% block title %}Home - Mujin HelpDesk{% endblock %}
-
+{% block title %}Console — ITSS PRO TOOL{% endblock %}
 {% block content %}
-<div class="container">
-    <div class="header">
-        <h1>🔧 Mujin HelpDesk</h1>
-        <p>IT troubleshooting knowledge base for Debian 13, Windows 11, and macOS</p>
+<section class="hero">
+    <div class="eyebrow">IT operations console</div>
+    <h1>Find the fix. Ship the ticket.</h1>
+    <p class="lede">Search {{ total }} troubleshooting articles across Debian 13, Windows 11, and macOS. Get the diagnosis, the commands to run, and a FreshService ticket ready to paste.</p>
+    <div class="stat-strip">
+        <div class="stat"><div class="num">{{ total }}</div><div class="lbl">Articles</div></div>
+        {% for name, label in os_labels.items() %}
+        <div class="stat {{ name }}"><div class="num">{{ counts[name] }}</div><div class="lbl">{{ label }}</div></div>
+        {% endfor %}
     </div>
+</section>
 
-    <!-- Quick Stats -->
-    <div class="stats-grid">
-        <div class="card">
-            <div class="card-header">
-                <span>📊 Total Articles</span>
-            </div>
-            <div class="card-content">
-                <div class="stat-number">{{ total }}</div>
-            </div>
-        </div>
+<section class="search-panel">
+    <form class="search-row" id="searchForm" role="search">
+        <input type="text" id="searchInput" placeholder="Describe the symptom — e.g. apt lock, RDP black screen, wifi no internet" aria-label="Search articles">
+        <select id="searchOs" aria-label="Filter by operating system">
+            <option value="">All systems</option>
+            {% for name, label in os_labels.items() %}
+            <option value="{{ name }}">{{ label }}</option>
+            {% endfor %}
+        </select>
+        <button class="btn" type="submit">Search</button>
+    </form>
+    <div class="results" id="searchResults"></div>
+</section>
 
-        <div class="card">
-            <div class="card-header">
-                <span>🐧 Debian 13</span>
-            </div>
-            <div class="card-content">
-                <div class="stat-number">{{ stats.debian.debian }}/{{ stats.debian.common + stats.debian.moderate + stats.debian.severe }}</div>
-                <div class="stat-label">common / moderate / severe</div>
-            </div>
-        </div>
-
-        <div class="card">
-            <div class="card-header">
-                <span>🪟 Windows 11</span>
-            </div>
-            <div class="card-content">
-                <div class="stat-number">{{ stats.windows.debian }}/{{ stats.windows.common + stats.windows.moderate + stats.windows.severe }}</div>
-                <div class="stat-label">common / moderate / severe</div>
-            </div>
-        </div>
-
-        <div class="card">
-            <div class="card-header">
-                <span>🍎 macOS</span>
-            </div>
-            <div class="card-content">
-                <div class="stat-number">{{ stats.mac.debian }}/{{ stats.mac.common + stats.mac.moderate + stats.mac.severe }}</div>
-                <div class="stat-label">common / moderate / severe</div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Search -->
-    <div class="card">
-        <div class="card-header">
-            <span>🔍 Quick Search</span>
-        </div>
-        <div class="card-content">
-            <div class="search-container">
-                <input type="text" id="searchInput" placeholder="Search for issues (e.g., 'apt lock', 'RDP connection')" class="search-input">
-                <select id="searchOs" class="search-select">
-                    <option value="all">All OS</option>
-                    <option value="debian">Debian 13</option>
-                    <option value="windows">Windows 11</option>
-                    <option value="mac">macOS</option>
-                </select>
-                <button onclick="performSearch()" class="btn btn-primary">Search</button>
-            </div>
-            <div id="searchResults" class="search-results hidden"></div>
-        </div>
-    </div>
-
-    <!-- Article previews per OS -->
-    <div class="os-sections">
-        <div class="os-section">
-            <div class="os-header debian">
-                <h2>🐧 Debian 13 (Developer Focus)</h2>
-                <p>Package management, systemd, networking, permissions, builds</p>
-            </div>
-            <div class="articles-grid">
-                {% for article in samples.debian %}
-                <div class="article-card">
-                    <div class="article-severity {{ article.severity }}">
-                        {{ {'common': '●', 'moderate': '◑', 'severe': '✖'}[article.severity] }}
-                    </div>
-                    <div class="article-content">
-                        <h3><a href="/article/{{ article.id }}">{{ article.title }}</a></h3>
-                        <p class="article-meta">Category: {{ article.category }}</p>
-                        <p class="article-summary">{{ article.symptoms[0] if article.symptoms else '' }}</p>
-                        <div class="article-actions">
-                            <button onclick="viewArticle('{{ article.id }}')" class="btn btn-sm">View</button>
-                            <button onclick="showDiagnostic('{{ article.id }}')" class="btn btn-sm btn-secondary">Diagnostic</button>
-                        </div>
-                    </div>
-                </div>
-                {% endfor %}
-                {% if samples.debian|length == 0 %}
-                <div class="empty-state">No Debian articles available</div>
-                {% endif %}
-            </div>
-        </div>
-
-        <div class="os-section">
-            <div class="os-header windows">
-                <h2>🪟 Windows 11 (Back Office / Field Service)</h2>
-                <p>Network, RDP, printers, applications, updates, accounts</p>
-            </div>
-            <div class="articles-grid">
-                {% for article in samples.windows %}
-                <div class="article-card">
-                    <div class="article-severity {{ article.severity }}">
-                        {{ {'common': '●', 'moderate': '◑', 'severe': '✖'}[article.severity] }}
-                    </div>
-                    <div class="article-content">
-                        <h3><a href="/article/{{ article.id }}">{{ article.title }}</a></h3>
-                        <p class="article-meta">Category: {{ article.category }}</p>
-                        <p class="article-summary">{{ article.symptoms[0] if article.symptoms else '' }}</p>
-                        <div class="article-actions">
-                            <button onclick="viewArticle('{{ article.id }}')" class="btn btn-sm">View</button>
-                            <button onclick="showDiagnostic('{{ article.id }}')" class="btn btn-sm btn-secondary">Diagnostic</button>
-                        </div>
-                    </div>
-                </div>
-                {% endfor %}
-                {% if samples.windows|length == 0 %}
-                <div class="empty-state">No Windows articles available</div>
-                {% endif %}
-            </div>
-        </div>
-
-        <div class="os-section">
-            <div class="os-header mac">
-                <h2>🍎 macOS (General Use)</h2>
-                <p>Terminal, networking, permissions, apps, updates</p>
-            </div>
-            <div class="articles-grid">
-                {% for article in samples.mac %}
-                <div class="article-card">
-                    <div class="article-severity {{ article.severity }}">
-                        {{ {'common': '●', 'moderate': '◑', 'severe': '✖'}[article.severity] }}
-                    </div>
-                    <div class="article-content">
-                        <h3><a href="/article/{{ article.id }}">{{ article.title }}</a></h3>
-                        <p class="article-meta">Category: {{ article.category }}</p>
-                        <p class="article-summary">{{ article.symptoms[0] if article.symptoms else '' }}</p>
-                        <div class="article-actions">
-                            <button onclick="viewArticle('{{ article.id }}')" class="btn btn-sm">View</button>
-                            <button onclick="showDiagnostic('{{ article.id }}')" class="btn btn-sm btn-secondary">Diagnostic</button>
-                        </div>
-                    </div>
-                </div>
-                {% endfor %}
-                {% if samples.mac|length == 0 %}
-                <div class="empty-state">No macOS articles available</div>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-
-    <!-- Quick Actions -->
-    <div class="quick-actions">
-        <a href="/ticket" class="action-btn">
-            <span>📋</span>
-            <span>Generate Ticket Template</span>
+<section class="os-board">
+    {% for name, label in os_labels.items() %}
+    <article class="panel {{ name }}">
+        <header>
+            <h2>{{ label }}</h2>
+            <span class="count">{{ counts[name] }} articles</span>
+        </header>
+        {% for article in samples[name] %}
+        <a class="article-row" href="/article/{{ article.id }}">
+            <div>{{ article.title }}</div>
+            <div class="meta">{{ article.category }} · {{ article.severity }}</div>
         </a>
-        <a href="#" onclick="alert('Documentation will be available soon')" class="action-btn">
-            <span>📚</span>
-            <span>Documentation</span>
-        </a>
-        <a href="#" onclick="alert('Help will be available soon')" class="action-btn">
-            <span>❓</span>
-            <span>Help</span>
-        </a>
+        {% endfor %}
+        <a class="more" href="/browse/{{ name }}">Browse all {{ label }} →</a>
+    </article>
+    {% endfor %}
+</section>
+
+{% if saved %}
+<section class="section">
+    <h3>Recently saved tickets</h3>
+    <div class="ticket-list">
+        {% for ticket in saved %}
+        <div class="ticket-item">
+            <div>
+                <h3>{{ ticket.title }}</h3>
+                <div class="when">{{ ticket.os }} · {{ ticket.symptom }}</div>
+            </div>
+            <a class="btn ghost small" href="/tickets">Open</a>
+        </div>
+        {% endfor %}
     </div>
-</div>
-
-<script>
-function performSearch() {
-    const query = document.getElementById('searchInput').value;
-    const os = document.getElementById('searchOs').value;
-
-    if (!query) {
-        document.getElementById('searchResults').innerHTML = '<div class="empty-state">Please enter a search term</div>';
-        return;
-    }
-
-    fetch(`/api/search?q=${encodeURIComponent(query)}${os !== 'all' ? '&os=' + os : ''}`)
-        .then(response => response.json())
-        .then(data => {
-            const resultsContainer = document.getElementById('searchResults');
-            if (data.results && data.results.length > 0) {
-                let html = `<div class="search-result-list">`;
-                data.results.forEach(article => {
-                    html += `
-                        <div class="search-result-item" onclick="window.location.href='/article/${article.id}'">
-                            <div class="search-result-header">
-                                <span class="search-result-os ${article.os}">${article.os.toUpperCase()}</span>
-                                <span class="search-result-severity ${article.severity}">${{ 'common': '●', 'moderate': '◑', 'severe': '✖'}[article.severity] }</span>
-                            </div>
-                            <h4>${article.title}</h4>
-                            <p>Category: ${article.category}</p>
-                        </div>
-                    `;
-                });
-                html += `</div>`;
-                resultsContainer.innerHTML = html;
-                resultsContainer.classList.remove('hidden');
-            } else {
-                resultsContainer.innerHTML = '<div class="empty-state">No articles found for your search</div>';
-                resultsContainer.classList.remove('hidden');
-            }
-        })
-        .catch(error => {
-            console.error('Search error:', error);
-            document.getElementById('searchResults').innerHTML = '<div class="empty-state">Search error. Please try again.</div>';
-        });
-}
-
-function viewArticle(articleId) {
-    window.location.href = `/article/${articleId}`;
-}
-
-function showDiagnostic(articleId) {
-    fetch(`/diagnostic/${articleId}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.formatted) {
-                // Show diagnostic in a modal or alert for now
-                alert('Diagnostic commands:\n\n' + data.formatted.replace(/\\n/g, '\n'));
-            } else {
-                alert('Unable to load diagnostic commands');
-            }
-        })
-        .catch(error => {
-            console.error('Diagnostic error:', error);
-            alert('Error loading diagnostic commands');
-        });
-}
-
-// Auto-search on enter key
-document.getElementById('searchInput').addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') {
-        performSearch();
-    }
-});
-</script>
+</section>
+{% endif %}
 {% endblock %}

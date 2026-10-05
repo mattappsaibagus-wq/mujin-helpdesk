@@ -20,7 +20,11 @@ Thumbs.db
 
 # Secrets / config
 .env
+.env.local
 *.key
 
 # Web dashboard output
 *.log
+
+# Written at runtime by the web app
+data/
